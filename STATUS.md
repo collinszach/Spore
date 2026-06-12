@@ -3,13 +3,14 @@
 _Last updated: 2026-06-12. Update at the end of every session._
 
 ## Now
-FULL BACKEND CORE LOOP LIVE. **Stories 1.1–1.3 + Epics 3, 4, 5 DONE.**
-/capture → /internal/triage-batch (confidence gate) → /review (approve|redirect|merge|discard + corrections)
-→ vault writer (real Obsidian markdown + YAML frontmatter + bidirectional backlinks + MOC, one git commit/write).
-51 tests green on remote Postgres; every layer smoke-tested live. Triage runs on deterministic FAKE
-Claude/Voyage clients until ANTHROPIC_API_KEY + VOYAGE_API_KEY are set on the remote .env.
-Next options: **wire live keys** (real intelligence), **Epic 6** skills/Builder, **Epic 7** pipeline/n8n,
-**Epic 2 iOS** (Xcode), or **1.4/1.5** (need TUNNEL_TOKEN / TELEGRAM_BOT_TOKEN).
+FULL BACKEND CORE LOOP LIVE **WITH REAL AI**. **Stories 1.1–1.3 + Epics 3, 4, 5 DONE + real clients wired.**
+/capture → /internal/triage-batch (real Claude Haiku Sorter + LOCAL Ollama embeddings) → confidence gate
+→ /review → vault writer (markdown + git). 64 tests green; verified live with real models:
+task/question/project_idea/reference classified, 0.72 question routed to review queue, ~$0.0007/capture (NFR3).
+Embeddings are LOCAL (Ollama mxbai-embed-large, 1024-dim) — no Voyage, no per-token embedding cost.
+ANTHROPIC_API_KEY is set on the remote .env (not committed).
+Next options: **Epic 6** skills/Builder, **Epic 7** pipeline/n8n + triage cron, **Epic 2 iOS** (Xcode),
+or **1.4/1.5** (need TUNNEL_TOKEN / TELEGRAM_BOT_TOKEN).
 
 ## Known ops nits
 - api container runs as root → vault files on host owned by root (host `git` needs `safe.directory`). Add a non-root user to backend/Dockerfile later.
@@ -39,10 +40,15 @@ Next options: **wire live keys** (real intelligence), **Epic 6** skills/Builder,
 - [x] **Epic 3** — Sorter + embeddings + dedup + confidence gate; /internal/triage-batch; 23 tests; verified live
 - [x] **Epic 4** — review-queue API (approve/redirect/merge/discard) + corrections (FR13/14); 36 tests; verified live
 - [x] **Epic 5** — git-versioned vault writer (frontmatter/backlinks/MOC/atomic commits, FR16-19); 51 tests; verified live
+- [x] **Real AI wired** — Claude Haiku Sorter (key in remote .env) + LOCAL Ollama embeddings (mxbai-embed-large 1024d); 64 tests; verified live end-to-end
+
+## Infra: Ollama
+- `ollama` service in compose (internal-only). Model `mxbai-embed-large` pulled into `spore_ollama` volume.
+  If recreated, re-pull: `docker compose exec ollama ollama pull mxbai-embed-large`.
 
 ## Next 3 stories
-1. **Wire live keys** — set ANTHROPIC_API_KEY + VOYAGE_API_KEY on remote .env; real Sorter/embeddings
-2. **Epic 6** — skills registry + Builder runtime (FR21-25): run skills/*.skill.yaml against a note → vault output
+1. **Epic 6** — skills registry + Builder runtime (FR21-25): run skills/*.skill.yaml against a note → vault output
+2. **Epic 7** — pipeline/state-machine + n8n triage cron (wire /internal/triage-batch to a 1-2min schedule)
 3. **Epic 2** iOS app shell + offline capture queue (Xcode) — or **1.4/1.5** once secrets provided
 
 ## Open decisions (block specific stories)
