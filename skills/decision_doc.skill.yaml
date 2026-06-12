@@ -1,0 +1,17 @@
+name: decision_doc
+trigger:
+  manual: true
+  input_types: [question, project_idea]
+prompt: |
+  You are Builder. Given a note framing a decision/question, produce a
+  decision document:
+  - Restate the decision/question clearly.
+  - List 2-4 viable options, each with a short description.
+  - For each option, list key tradeoffs (pros/cons).
+  - Give a recommendation with a one-paragraph rationale.
+  - List open questions that would change the recommendation, if any.
+output:
+  template: templates/decision_doc.md
+  path: "10_Notes/{{slug}}-decision.md"
+post_actions:
+  - notify: telegram

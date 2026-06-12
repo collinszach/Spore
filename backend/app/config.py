@@ -52,5 +52,13 @@ class Settings(BaseSettings):
     vault_path: str = str(_REPO_ROOT / "vault" / "_sandbox")
     vault_para_map: dict[str, str] = DEFAULT_VAULT_PARA_MAP
 
+    # Epic 6 — Skills engine + Builder (CLAUDE.md rule 7: stronger model only
+    # for build-out). `skills_dir` is scanned for `*.skill.yaml` files;
+    # dropping a new file registers it with no code change (Story 6.1).
+    # In the container, the PM mounts the repo's `skills/` dir at `/skills`
+    # and sets SKILLS_DIR=/skills.
+    skills_dir: str = str(_REPO_ROOT / "skills")
+    builder_model: str = "claude-sonnet-4-6"
+
 
 settings = Settings()

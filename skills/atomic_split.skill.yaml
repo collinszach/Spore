@@ -1,0 +1,18 @@
+name: atomic_split
+trigger:
+  manual: true
+  input_types: [fleeting, project_idea, journal]
+prompt: |
+  You are Builder. The given note has grown to cover multiple distinct
+  ideas. Re-decompose it into a numbered list of atomic notes:
+  - Each atomic note gets a short title (as a Markdown heading) and a
+    1-3 sentence body capturing exactly one idea.
+  - Preserve all distinct ideas from the original note; do not merge
+    unrelated ideas into one atomic note.
+  - After the list, add a one-line "Suggested links" note for any atomic
+    notes that seem related to each other.
+output:
+  template: templates/atomic_split.md
+  path: "10_Notes/{{slug}}-split.md"
+post_actions:
+  - notify: telegram

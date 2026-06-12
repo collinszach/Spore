@@ -37,9 +37,11 @@ services:
       EMBEDDINGS_PROVIDER: ollama                    # local embeddings; no cloud cost
       OLLAMA_URL: http://ollama:11434
       EMBEDDING_MODEL: mxbai-embed-large             # 1024-dim, matches schema (ADR-002)
+      SKILLS_DIR: /skills                            # declarative skill registry (drop a file, no rebuild — FR21)
     ports: ["8020:8020"]                            # Spore API (KoastCast uses 8010/8011 — avoid clash)
     volumes:
       - ./vault:/vault                               # persist agent vault writes on the host (git repo under _sandbox)
+      - ./skills:/skills:ro                          # runtime skill registry (read-only)
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }

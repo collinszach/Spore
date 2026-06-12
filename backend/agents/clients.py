@@ -203,12 +203,23 @@ class FakeClaudeClient:
     The rule inspects only the capture body, not the whole prompt: neighbor
     notes are listed in the prompt with their titles, and a neighbor titled
     "TODO ..." must not flip an unrelated capture to a task.
+
+    Epic 6 (Builder): when constructed with an explicit `model` (the
+    Builder factory always passes `settings.builder_model`), `complete`
+    instead returns a deterministic Markdown/prose response — Builder
+    output is free-form build-out content, not Sorter-shaped JSON, so
+    `json` is left `None`.
     """
 
     model = "fake-sorter"
 
-    def __init__(self, usage: ClaudeUsage | None = None):
+    def __init__(self, usage: ClaudeUsage | None = None, model: str | None = None):
         self.usage = usage or ClaudeUsage(input_tokens=0, output_tokens=0)
+        if model:
+            self.model = model
+            self._builder_mode = True
+        else:
+            self._builder_mode = False
 
     @staticmethod
     def _capture_body(user: str) -> str:
@@ -222,6 +233,14 @@ class FakeClaudeClient:
         return user[start:] if end == -1 else user[start:end]
 
     async def complete(self, system: str, user: str) -> ClaudeResponse:
+        if self._builder_mode:
+            text = (
+                "## Build-out result\n\n"
+                "_(fake Builder output — no live model call)_\n\n"
+                f"{user.strip()}\n"
+            )
+            return ClaudeResponse(text=text, json=None, usage=self.usage, model=self.model)
+
         if "todo" in self._capture_body(user).lower():
             payload = {
                 "type": "task",
@@ -342,8 +361,14 @@ def get_embeddings_client() -> EmbeddingsClient:
     return FakeEmbeddingsClient()
 
 
-def get_claude_client() -> ClaudeClient:
-    """Real Anthropic client iff ANTHROPIC_API_KEY is set, else the fake."""
+def get_claude_client(model: str | None = None) -> ClaudeClient:
+    """Real Anthropic client iff ANTHROPIC_API_KEY is set, else the fake.
+
+    `model` is an optional override (e.g. `settings.builder_model` for
+    build-out skills — CLAUDE.md rule 7: "stronger model only for
+    build-out"). Sorter callers omit it and get `settings.sorter_model`
+    (the `AnthropicClaudeClient` default).
+    """
     if settings.anthropic_api_key:
-        return AnthropicClaudeClient(api_key=settings.anthropic_api_key)
-    return FakeClaudeClient()
+        return AnthropicClaudeClient(api_key=settings.anthropic_api_key, model=model)
+    return FakeClaudeClient(model=model) if model else FakeClaudeClient()

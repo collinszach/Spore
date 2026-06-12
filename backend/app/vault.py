@@ -78,6 +78,11 @@ class VaultWriter(Protocol):
         """Persist `doc` to the vault; return its relative vault path."""
         ...
 
+    async def write_raw(self, rel_path: str, content: str, commit_message: str) -> str:
+        """Write `content` to `rel_path` (relative to the vault base) and
+        make one atomic git commit; return the relative path."""
+        ...
+
 
 class NoOpVaultWriter:
     """Logs the write intent; performs no filesystem I/O."""
@@ -89,6 +94,13 @@ class NoOpVaultWriter:
             extra={"note_id": doc.note_id, "note_type": doc.type, "vault_path": path},
         )
         return path
+
+    async def write_raw(self, rel_path: str, content: str, commit_message: str) -> str:
+        logger.info(
+            "vault_write_raw_noop",
+            extra={"vault_path": rel_path, "commit_message": commit_message},
+        )
+        return rel_path
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -154,7 +166,26 @@ class GitVaultWriter:
             changed_paths.add(moc_path)
 
         # 4. One atomic commit for everything this write touched (FR18).
-        self._commit(changed_paths, doc)
+        message = f"vault: add {doc.title} ({doc.type or 'note'})"
+        self._commit(changed_paths, message)
+
+        return rel_path
+
+    async def write_raw(self, rel_path: str, content: str, commit_message: str) -> str:
+        """Low-level write (Epic 6 — Builder skill output, FR21-FR25).
+
+        Writes `content` verbatim to `rel_path` (relative to `base_path`),
+        ensuring parent directories exist, and makes one atomic git commit.
+        `_abs` enforces the sandbox invariant (CLAUDE.md rule 6): `rel_path`
+        can never resolve outside `base_path`.
+        """
+        self._ensure_repo()
+
+        abs_path = self._abs(rel_path)
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        abs_path.write_text(content, encoding="utf-8")
+
+        self._commit({rel_path}, commit_message)
 
         return rel_path
 
@@ -268,12 +299,11 @@ class GitVaultWriter:
 
     # -- git --------------------------------------------------------------------
 
-    def _commit(self, changed_paths: set[str], doc: NoteDoc) -> None:
+    def _commit(self, changed_paths: set[str], message: str) -> None:
         repo = Repo(str(self.base_path))
         try:
             paths = sorted(changed_paths)
             porcelain.add(repo, [str(self._abs(p)) for p in paths])
-            message = f"vault: add {doc.title} ({doc.type or 'note'})"
             porcelain.commit(
                 repo,
                 message=message.encode("utf-8"),

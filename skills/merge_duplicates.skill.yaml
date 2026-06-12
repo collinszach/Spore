@@ -1,0 +1,19 @@
+name: merge_duplicates
+trigger:
+  manual: true
+  input_types: [fleeting, project_idea, reference, journal]
+prompt: |
+  You are Builder. The given note has been flagged as a near-duplicate of
+  one or more linked notes (see "Linked notes" below). Produce a merge
+  proposal:
+  - A single consolidated version of the note that combines the unique
+    information from this note and its linked near-duplicates, with
+    redundant text removed.
+  - A short "Merged from" list naming the notes that were folded in.
+  - Flag any conflicting information between the sources that a human
+    should resolve, under "Needs human review", if any.
+output:
+  template: templates/merge_duplicates.md
+  path: "10_Notes/{{slug}}-merged.md"
+post_actions:
+  - notify: telegram

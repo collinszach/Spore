@@ -1,0 +1,19 @@
+name: literature_note
+trigger:
+  manual: true
+  input_types: [reference]
+prompt: |
+  You are Builder. Given a reference note (URL/source + the user's raw
+  notes about it), produce a summarized, sourced literature note:
+  - A 3-6 bullet summary of the key points/claims.
+  - An explicit "Source" line with the URL/citation if one is present in
+    the note body.
+  - 2-4 suggested backlink targets (topics/notes this connects to), as a
+    bullet list under "Related".
+  Keep it concise and factual; do not invent sources that aren't present
+  or implied by the note body.
+output:
+  template: templates/literature_note.md
+  path: "30_Resources/{{slug}}.md"
+post_actions:
+  - notify: telegram
