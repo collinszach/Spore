@@ -3,12 +3,16 @@
 _Last updated: 2026-06-12. Update at the end of every session._
 
 ## Now
-Capture → triage → review spine LIVE. **Stories 1.1–1.3 + Epic 3 + Epic 4 DONE.**
-/capture → /internal/triage-batch (confidence gate) → /review (approve|redirect|merge|discard + corrections).
-All verified live; 36 tests green on remote Postgres. Triage runs on deterministic FAKE clients until
-ANTHROPIC_API_KEY + VOYAGE_API_KEY are set on the remote .env.
-Next options: **wire live keys** (real Claude/Voyage), **Epic 5 vault writer** (fill the NoOpVaultWriter
-seam — Obsidian markdown + git, FR16-19), **Epic 2 iOS** (Xcode), or **1.4/1.5** (need TUNNEL_TOKEN / TELEGRAM_BOT_TOKEN).
+FULL BACKEND CORE LOOP LIVE. **Stories 1.1–1.3 + Epics 3, 4, 5 DONE.**
+/capture → /internal/triage-batch (confidence gate) → /review (approve|redirect|merge|discard + corrections)
+→ vault writer (real Obsidian markdown + YAML frontmatter + bidirectional backlinks + MOC, one git commit/write).
+51 tests green on remote Postgres; every layer smoke-tested live. Triage runs on deterministic FAKE
+Claude/Voyage clients until ANTHROPIC_API_KEY + VOYAGE_API_KEY are set on the remote .env.
+Next options: **wire live keys** (real intelligence), **Epic 6** skills/Builder, **Epic 7** pipeline/n8n,
+**Epic 2 iOS** (Xcode), or **1.4/1.5** (need TUNNEL_TOKEN / TELEGRAM_BOT_TOKEN).
+
+## Known ops nits
+- api container runs as root → vault files on host owned by root (host `git` needs `safe.directory`). Add a non-root user to backend/Dockerfile later.
 
 ## Remote ops note
 - Host `100.91.198.28` rebooted once mid-build; containers don't auto-start. Recover with:
@@ -34,10 +38,11 @@ seam — Obsidian markdown + git, FR16-19), **Epic 2 iOS** (Xcode), or **1.4/1.5
 - [x] **Story 1.3** — authed idempotent POST /capture; 10 tests; verified live
 - [x] **Epic 3** — Sorter + embeddings + dedup + confidence gate; /internal/triage-batch; 23 tests; verified live
 - [x] **Epic 4** — review-queue API (approve/redirect/merge/discard) + corrections (FR13/14); 36 tests; verified live
+- [x] **Epic 5** — git-versioned vault writer (frontmatter/backlinks/MOC/atomic commits, FR16-19); 51 tests; verified live
 
 ## Next 3 stories
 1. **Wire live keys** — set ANTHROPIC_API_KEY + VOYAGE_API_KEY on remote .env; real Sorter/embeddings
-2. **Epic 5** vault writer — fill NoOpVaultWriter seam: Obsidian markdown + YAML frontmatter + git commits (FR16-19)
+2. **Epic 6** — skills registry + Builder runtime (FR21-25): run skills/*.skill.yaml against a note → vault output
 3. **Epic 2** iOS app shell + offline capture queue (Xcode) — or **1.4/1.5** once secrets provided
 
 ## Open decisions (block specific stories)
