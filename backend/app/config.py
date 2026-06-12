@@ -15,5 +15,15 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     spore_capture_token: str = "dev-token"
 
+    # Epic 3 — Sorter + embeddings + dedup
+    sorter_model: str = "claude-haiku-4-5-20251001"
+    embedding_model: str = "voyage-3-lite"
+    direct_write_threshold: float = 0.80
+    review_floor: float = 0.50
+    dup_similarity_threshold: float = 0.90
+    voyage_api_key: str = ""
+    anthropic_api_key: str = ""
+    triage_batch_limit: int = 25
+
 
 settings = Settings()

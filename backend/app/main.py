@@ -11,12 +11,14 @@ import uuid
 from fastapi import FastAPI, Request
 
 from app.routers import capture as capture_router
+from app.routers import internal as internal_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("spore")
 
 app = FastAPI(title="Spore API")
 app.include_router(capture_router.router)
+app.include_router(internal_router.router)
 
 
 @app.middleware("http")
