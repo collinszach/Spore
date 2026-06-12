@@ -1,0 +1,9 @@
+.env
+*.env
+**/secrets/**
+vault/**
+!vault/_sandbox/**
+ios/build/**
+**/__pycache__/**
+*.ipa
+*.p8

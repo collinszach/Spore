@@ -1,0 +1,12 @@
+name: expand_to_spec
+trigger: { on_promote_to: project, input_types: [project_idea] }
+prompt: |
+  Turn this idea note into a SPEC.md scaffold using the user's standard structure
+  (Problem, Architecture, Data Model, Backlog). Pull in linked notes and Scout research.
+output:
+  template: templates/spec_scaffold.md
+  path: "20_Projects/{{slug}}/SPEC.md"
+post_actions:
+  - create_folder: "20_Projects/{{slug}}"
+  - set_idea_state: project
+  - notify: telegram

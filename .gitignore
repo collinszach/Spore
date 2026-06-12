@@ -1,0 +1,27 @@
+# Secrets
+.env
+*.env
+!.env.example
+**/secrets/**
+*.p8
+
+# Python
+**/__pycache__/**
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# iOS / Xcode
+ios/build/**
+*.ipa
+*.xcuserstate
+DerivedData/
+
+# Vault (Obsidian) — submodule, never committed here except sandbox
+vault/*
+!vault/_sandbox/
+
+# Misc
+.DS_Store
+files.zip

@@ -1,0 +1,66 @@
+# Spore — docker-compose.yml  (story 1.1: backend spine)
+# `docker compose up -d` boots the full local stack.
+
+services:
+  db:
+    image: timescale/timescaledb-ha:pg16          # Postgres 16 + TimescaleDB; add pgvector via init
+    environment:
+      POSTGRES_USER: spore
+      POSTGRES_PASSWORD: spore
+      POSTGRES_DB: spore
+    ports: ["5432:5432"]
+    volumes:
+      - spore_pg:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro   # 001_init.sql runs on first boot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spore"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://spore:spore@db:5432/spore
+      REDIS_URL: redis://redis:6379/0
+    ports: ["8020:8020"]                            # Spore API (KoastCast uses 8010/8011 — avoid clash)
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      N8N_PORT: 5678
+      N8N_HOST: localhost
+      GENERIC_TIMEZONE: America/New_York
+    ports: ["5678:5678"]
+    volumes:
+      - spore_n8n:/home/node/.n8n
+
+  # Cloudflare Tunnel — run with your token to expose api externally, no inbound ports.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    env_file: .env                                 # TUNNEL_TOKEN=...
+    depends_on: [api]
+    restart: unless-stopped
+
+volumes:
+  spore_pg:
+  spore_n8n:
