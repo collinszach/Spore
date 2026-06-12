@@ -3,8 +3,16 @@
 _Last updated: 2026-06-12. Update at the end of every session._
 
 ## Now
-Repo scaffolded + pushed. **Story 1.1 DONE** — stack live on remote Docker host: db/redis/api
-healthy, `/health` 200, schema + extensions applied. Next action: **Story 1.2 — data layer + repositories.**
+Backend capture spine LIVE on remote stack. **Stories 1.1, 1.2, 1.3 DONE.**
+POST /capture works end-to-end (201 create / 200 idempotent retry / 401 bad token).
+Next: **1.4 Cloudflare Tunnel (needs TUNNEL_TOKEN)** or **1.5 Telegram (needs TELEGRAM_BOT_TOKEN)**
+— both blocked on secrets. Unblocked alternative: **Epic 3 Sorter/triage (agent-engineer, mockable)**
+or **Epic 2 iOS scaffold (Xcode)**.
+
+## Test harness (remote)
+- DB tests run in a transient python:3.12 container on the `spore_default` network against a
+  `spore_test` DB (schema pre-applied). `docker run --network spore_default -e DATABASE_URL=...@db:5432/spore_test`.
+- Full suite: 10 passed (health + repos + /capture contract). pytest log_level=INFO.
 
 ## Infra notes
 - Docker runs on remote host `zach@100.91.198.28` (Ubuntu, Docker 29.5 / Compose v5.1). Repo synced to `~/spore`; `.env` lives there (not committed).
@@ -17,11 +25,13 @@ healthy, `/health` 200, schema + extensions applied. Next action: **Story 1.2 �
 - [x] Stories sharded: Epic 1 + Epic 2
 - [x] Repo scaffolded (.claude kit, docs/, infra) + pushed to GitHub
 - [x] **Story 1.1** — stack stood up; /health 200; pgvector+Timescale; 9 tables
+- [x] **Story 1.2** — async data layer + repositories (CRUD + pgvector kNN); 4 tests
+- [x] **Story 1.3** — authed idempotent POST /capture; 10 tests; verified live
 
 ## Next 3 stories
-1. **1.2** data layer + repositories (backend-engineer) — Deps: 1.1 ✓
-2. **1.3** `/capture` endpoint (backend-engineer)
-3. **2.1 → 2.2** iOS app shell + offline capture queue (ios-engineer)
+1. **1.4** Cloudflare Tunnel + device auth — BLOCKED on TUNNEL_TOKEN
+2. **1.5** Telegram fallback capture — BLOCKED on TELEGRAM_BOT_TOKEN
+3. **Epic 3** Sorter + embeddings + dedup (agent-engineer) — unblocked if mocked; needs ANTHROPIC_API_KEY for live
 
 ## Open decisions (block specific stories)
 - ADR-001 Whisper API vs local → blocks Story 2.6
