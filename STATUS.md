@@ -3,11 +3,13 @@
 _Last updated: 2026-06-12. Update at the end of every session._
 
 ## Now
-Backend capture spine LIVE on remote stack. **Stories 1.1, 1.2, 1.3 DONE.**
-POST /capture works end-to-end (201 create / 200 idempotent retry / 401 bad token).
-Next: **1.4 Cloudflare Tunnel (needs TUNNEL_TOKEN)** or **1.5 Telegram (needs TELEGRAM_BOT_TOKEN)**
-— both blocked on secrets. Unblocked alternative: **Epic 3 Sorter/triage (agent-engineer, mockable)**
-or **Epic 2 iOS scaffold (Xcode)**.
+Capture + triage spine LIVE. **Stories 1.1–1.3 + Epic 3 DONE.**
+/capture works; /internal/triage-batch classifies pending captures through the confidence gate
+(verified live: 3 captures → triaged, 3 notes, 1 reminder, skill_run ledger). Runs on deterministic
+FAKE clients until ANTHROPIC_API_KEY + VOYAGE_API_KEY are set on the remote .env.
+Next options: **Epic 4 review-queue backend** (approve/redirect/merge/discard + corrections, FR13/14 —
+fully backend-verifiable), **wire live keys** to see real Claude/Voyage triage, **Epic 2 iOS** (Xcode),
+or **1.4/1.5** (blocked on TUNNEL_TOKEN / TELEGRAM_BOT_TOKEN).
 
 ## Test harness (remote)
 - DB tests run in a transient python:3.12 container on the `spore_default` network against a
@@ -27,11 +29,12 @@ or **Epic 2 iOS scaffold (Xcode)**.
 - [x] **Story 1.1** — stack stood up; /health 200; pgvector+Timescale; 9 tables
 - [x] **Story 1.2** — async data layer + repositories (CRUD + pgvector kNN); 4 tests
 - [x] **Story 1.3** — authed idempotent POST /capture; 10 tests; verified live
+- [x] **Epic 3** — Sorter + embeddings + dedup + confidence gate; /internal/triage-batch; 23 tests; verified live
 
 ## Next 3 stories
-1. **1.4** Cloudflare Tunnel + device auth — BLOCKED on TUNNEL_TOKEN
-2. **1.5** Telegram fallback capture — BLOCKED on TELEGRAM_BOT_TOKEN
-3. **Epic 3** Sorter + embeddings + dedup (agent-engineer) — unblocked if mocked; needs ANTHROPIC_API_KEY for live
+1. **Epic 4** review-queue backend — approve/redirect/merge/discard + correction log (FR13/14); backend-verifiable
+2. **Wire live keys** — set ANTHROPIC_API_KEY + VOYAGE_API_KEY on remote .env; real Sorter/embeddings
+3. **Epic 2** iOS app shell + offline capture queue (Xcode) — or **1.4/1.5** once secrets provided
 
 ## Open decisions (block specific stories)
 - ADR-001 Whisper API vs local → blocks Story 2.6
