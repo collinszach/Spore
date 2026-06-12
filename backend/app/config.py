@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     triage_batch_limit: int = 25
 
+    # Embeddings provider selection: "ollama" (local, free), "voyage" (real,
+    # paid), or "fake" (deterministic, default — tests / no-key local dev).
+    embeddings_provider: str = "fake"
+    ollama_url: str = "http://ollama:11434"
+
     # Epic 5 — Obsidian vault integration (CLAUDE.md rule 6: vault is sacred;
     # dev writes go to vault/_sandbox only). Empty string or "none" disables
     # vault writes entirely (NoOpVaultWriter).

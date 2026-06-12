@@ -54,7 +54,8 @@ def _build_prompt(capture: RawCapture, neighbors: list[Note]) -> tuple[str, str]
         "routing_confidence (float 0-1), related_ids (list of UUID strings of "
         "neighbor notes this capture is related to, may be empty), duplicate_of "
         "(UUID string of a neighbor note this capture duplicates, or null). "
-        "No prose, no markdown — JSON only."
+        "No prose, no markdown — JSON only. "
+        "Respond with only the JSON object, no prose, no code fences."
     )
 
     neighbor_lines = []

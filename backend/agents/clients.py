@@ -3,32 +3,38 @@
 Two clients are needed by the Sorter pipeline:
 
 - An embeddings client: `embed(texts) -> list[list[float]]`, 1024-dim
-  (ADR-002, voyage-3-lite). Real implementation calls Voyage AI directly via
-  httpx; `FakeEmbeddingsClient` is a deterministic, hash-seeded stand-in used
-  whenever `VOYAGE_API_KEY` is unset (and always in tests).
+  (ADR-002, voyage-3-lite / mxbai-embed-large). Real implementations call
+  Voyage AI or a local Ollama instance via httpx; `FakeEmbeddingsClient` is a
+  deterministic, hash-seeded stand-in used by default and always in tests.
 - A Claude client wrapper for the Sorter: takes a system+user prompt, returns
   parsed JSON plus token usage. Real implementation uses the `anthropic` SDK
   against a cheap model (`settings.sorter_model`); `FakeClaudeClient` returns
   a canned, schema-valid triage JSON (with a small steering rule so tests can
   control type/confidence) used whenever `ANTHROPIC_API_KEY` is unset.
 
-Factories (`get_embeddings_client` / `get_claude_client`) pick real-vs-fake
-based on key presence. Tests inject fakes explicitly and never hit the
-network.
+Factories (`get_embeddings_client` / `get_claude_client`) pick the
+implementation: `get_embeddings_client` uses `settings.embeddings_provider`
+("ollama" / "voyage" / "fake", default "fake"); `get_claude_client` uses the
+real Anthropic client iff `ANTHROPIC_API_KEY` is set, else the fake. Tests
+inject fakes explicitly and never hit the network.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import random
+import re
 from dataclasses import dataclass
 from typing import Protocol
 
 import httpx
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 EMBEDDING_DIM = 1024
 
@@ -66,6 +72,45 @@ class VoyageEmbeddingsClient:
             response.raise_for_status()
             payload = response.json()
         return [item["embedding"] for item in payload["data"]]
+
+
+class OllamaEmbeddingsClient:
+    """Real embeddings client: local Ollama `/api/embeddings` via httpx.
+
+    Ollama's stable embeddings endpoint takes a single `prompt` per request
+    (no batch input), so `embed()` issues one POST per text and collects the
+    results in order. Each returned vector is checked against `EMBEDDING_DIM`
+    (1024, matching the `VECTOR(1024)` DB column) — a mismatched dimension
+    raises rather than silently returning a wrong-shape vector.
+    """
+
+    def __init__(self, base_url: str, model: str, timeout: float = 60.0):
+        self.base_url = base_url.rstrip("/")
+        self.model = model
+        self.timeout = timeout
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        url = f"{self.base_url}/api/embeddings"
+        vectors: list[list[float]] = []
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            for text in texts:
+                response = await client.post(url, json={"model": self.model, "prompt": text})
+                if response.status_code != 200:
+                    raise RuntimeError(
+                        f"Ollama embeddings request failed: HTTP {response.status_code} "
+                        f"{response.text!r}"
+                    )
+                payload = response.json()
+                embedding = payload.get("embedding")
+                if embedding is None:
+                    raise RuntimeError(f"Ollama embeddings response missing 'embedding': {payload!r}")
+                if len(embedding) != EMBEDDING_DIM:
+                    raise RuntimeError(
+                        f"Ollama embeddings response has dim {len(embedding)}, "
+                        f"expected {EMBEDDING_DIM} (model={self.model!r})"
+                    )
+                vectors.append(embedding)
+        return vectors
 
 
 class FakeEmbeddingsClient:
@@ -203,9 +248,62 @@ class FakeClaudeClient:
         return ClaudeResponse(text=text, json=payload, usage=self.usage, model=self.model)
 
 
+_CODE_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL | re.IGNORECASE)
+
+
+def _extract_json_candidate(text: str) -> str:
+    """Best-effort extraction of a JSON object from model output.
+
+    Real models sometimes wrap their JSON in ```json ... ``` fences or add
+    surrounding prose. This strips a fenced block if present, then falls
+    back to the first balanced `{...}` object in the text. If neither is
+    found, returns the input unchanged (so `json.loads` can raise its own
+    error).
+    """
+    stripped = text.strip()
+
+    fence_match = _CODE_FENCE_RE.search(stripped)
+    if fence_match:
+        stripped = fence_match.group(1).strip()
+
+    if stripped.startswith("{") and stripped.endswith("}"):
+        return stripped
+
+    # Find the first balanced {...} object, accounting for nested braces and
+    # braces inside string literals.
+    start = stripped.find("{")
+    if start == -1:
+        return stripped
+
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(stripped)):
+        ch = stripped[i]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return stripped[start : i + 1]
+
+    return stripped
+
+
 def _try_parse_json(text: str) -> dict | None:
+    candidate = _extract_json_candidate(text)
     try:
-        return json.loads(text)
+        return json.loads(candidate)
     except (ValueError, TypeError):
         return None
 
@@ -214,9 +312,33 @@ def _try_parse_json(text: str) -> dict | None:
 
 
 def get_embeddings_client() -> EmbeddingsClient:
-    """Real Voyage client iff VOYAGE_API_KEY is set, else the fake."""
-    if settings.voyage_api_key:
+    """Select the embeddings client per `EMBEDDINGS_PROVIDER`.
+
+    - "ollama": local Ollama embeddings (free). Falls back to the fake
+      client (with a warning) if `OLLAMA_URL` is unset/empty.
+    - "voyage": real Voyage AI client (requires `VOYAGE_API_KEY`).
+    - anything else (including "fake" / unset): deterministic fake client.
+    """
+    provider = settings.embeddings_provider.lower()
+
+    if provider == "ollama":
+        if not settings.ollama_url:
+            logger.warning(
+                "EMBEDDINGS_PROVIDER=ollama but OLLAMA_URL is empty; falling back to "
+                "FakeEmbeddingsClient"
+            )
+            return FakeEmbeddingsClient()
+        return OllamaEmbeddingsClient(settings.ollama_url, settings.embedding_model)
+
+    if provider == "voyage":
+        if not settings.voyage_api_key:
+            logger.warning(
+                "EMBEDDINGS_PROVIDER=voyage but VOYAGE_API_KEY is empty; falling back to "
+                "FakeEmbeddingsClient"
+            )
+            return FakeEmbeddingsClient()
         return VoyageEmbeddingsClient(api_key=settings.voyage_api_key)
+
     return FakeEmbeddingsClient()
 
 

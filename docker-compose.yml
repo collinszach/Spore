@@ -34,6 +34,9 @@ services:
       DATABASE_URL: postgresql://spore:spore@db:5432/spore
       REDIS_URL: redis://redis:6379/0
       VAULT_PATH: /vault/_sandbox                    # dev sandbox; real vault is sacred (CLAUDE.md rule 6)
+      EMBEDDINGS_PROVIDER: ollama                    # local embeddings; no cloud cost
+      OLLAMA_URL: http://ollama:11434
+      EMBEDDING_MODEL: mxbai-embed-large             # 1024-dim, matches schema (ADR-002)
     ports: ["8020:8020"]                            # Spore API (KoastCast uses 8010/8011 — avoid clash)
     volumes:
       - ./vault:/vault                               # persist agent vault writes on the host (git repo under _sandbox)
@@ -56,6 +59,14 @@ services:
     volumes:
       - spore_n8n:/home/node/.n8n
 
+  # Local embeddings — Ollama serving mxbai-embed-large (1024-dim). No cloud, no per-token cost.
+  ollama:
+    image: ollama/ollama:latest
+    expose: ["11434"]                              # internal-only (NFR4); reachable as ollama:11434
+    volumes:
+      - spore_ollama:/root/.ollama
+    restart: unless-stopped
+
   # Cloudflare Tunnel — run with your token to expose api externally, no inbound ports.
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -67,3 +78,4 @@ services:
 volumes:
   spore_pg:
   spore_n8n:
+  spore_ollama:
