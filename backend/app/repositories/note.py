@@ -23,6 +23,12 @@ class NoteRepository:
     async def get(self, note_id: uuid.UUID) -> Note | None:
         return await self.session.get(Note, note_id)
 
+    async def get_by_source_capture(self, capture_id: uuid.UUID) -> Note | None:
+        """Return the note (if any) created from `capture_id`."""
+        stmt = select(Note).where(Note.source_capture_id == capture_id)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
     async def list(self, idea_state: str | None = None, limit: int = 100) -> list[Note]:
         stmt = select(Note).order_by(Note.created_at.desc()).limit(limit)
         if idea_state is not None:

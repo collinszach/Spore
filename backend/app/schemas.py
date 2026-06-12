@@ -40,3 +40,38 @@ class CaptureOut(BaseModel):
     processed_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+
+class ReviewItemOut(BaseModel):
+    """Shape of a review_item row returned to clients (Story 4.2)."""
+
+    id: uuid.UUID
+    capture_id: uuid.UUID | None = None
+    reason: str | None = None
+    status: str
+    suggested_path: str | None = None
+    suggested_type: str | None = None
+    confidence: float | None = None
+    created_at: datetime
+    resolved_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class RedirectIn(BaseModel):
+    """POST /review/{id}/redirect request body — user-supplied routing overrides (FR14).
+
+    All fields optional; only the ones the user changed are sent. At least
+    one field should be present for a meaningful redirect.
+    """
+
+    type: str | None = None
+    domain: str | None = None
+    tags: list[str] | None = None
+    suggested_path: str | None = None
+
+
+class MergeIn(BaseModel):
+    """POST /review/{id}/merge request body — the existing note to merge into."""
+
+    target_note_id: uuid.UUID
