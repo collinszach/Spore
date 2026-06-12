@@ -8,6 +8,14 @@
 
 `triage_batch` selects pending captures FIFO and triages each (FR36 —
 batched triage to amortize cost).
+
+Epic 5: when the gate creates a `note` row (direct-write or needs-review —
+i.e. `decision.create_note is not None`), the note is also written to the
+Obsidian vault via `vault_writer.write_note(...)` (FR16-FR19) and the
+returned relative path is persisted onto `note.vault_path`. Below-floor
+captures (`decision.create_note is None`) never call the vault writer —
+this preserves the confidence-gate invariant that the vault is untouched
+below REVIEW_FLOOR (ARCHITECTURE §5).
 """
 
 from __future__ import annotations
@@ -29,6 +37,8 @@ from app.repositories.note import NoteRepository
 from app.repositories.reminder import ReminderRepository
 from app.repositories.review import ReviewRepository
 from app.repositories.skill_run import SkillRunRepository
+from app.vault import VaultWriter, get_vault_writer
+from app.vault_adapter import note_to_doc
 
 # Per-million-token pricing (USD) for known Sorter models. Unknown models
 # (including fake clients) cost $0 — cost discipline (CLAUDE.md rule 7) only
@@ -54,8 +64,10 @@ async def triage_capture(
     *,
     claude: ClaudeClient,
     embeddings: EmbeddingsClient,
+    vault_writer: VaultWriter | None = None,
 ) -> dict:
     """Run the full triage sequence for one capture. Returns a summary dict."""
+    vault_writer = vault_writer or get_vault_writer()
     note_repo = NoteRepository(session)
     capture_repo = CaptureRepository(session)
     review_repo = ReviewRepository(session)
@@ -88,7 +100,12 @@ async def triage_capture(
 
     if decision.create_note is not None:
         plan = decision.create_note
+        body = capture.body or ""
+        title = body.splitlines()[0].strip() if body.strip() else None
+        title = title[:200] if title else None
+
         note = await note_repo.create(
+            title=title,
             type=plan.type,
             tags=plan.tags,
             domain=plan.domain,
@@ -98,6 +115,14 @@ async def triage_capture(
             source_capture_id=plan.source_capture_id,
         )
         created_note_id = note.id
+
+        # Epic 5: every note the gate creates (direct-write or
+        # needs-review) is written to the vault immediately (FR16-FR19).
+        # Below-floor captures never reach this branch.
+        doc = await note_to_doc(session, note, body=body)
+        vault_path = await vault_writer.write_note(doc)
+        note = await note_repo.update(note.id, vault_path=vault_path)
+        assert note is not None
 
     for review_plan in decision.create_review_items:
         review_item = await review_repo.create(
@@ -159,6 +184,7 @@ async def triage_batch(
     limit: int,
     claude: ClaudeClient,
     embeddings: EmbeddingsClient,
+    vault_writer: VaultWriter | None = None,
 ) -> list[dict]:
     """Triage up to `limit` pending captures, FIFO (FR36)."""
     stmt = (
@@ -170,9 +196,13 @@ async def triage_batch(
     result = await session.execute(stmt)
     captures = list(result.scalars().all())
 
+    vault_writer = vault_writer or get_vault_writer()
+
     summaries = []
     for capture in captures:
-        summary = await triage_capture(session, capture, claude=claude, embeddings=embeddings)
+        summary = await triage_capture(
+            session, capture, claude=claude, embeddings=embeddings, vault_writer=vault_writer
+        )
         summaries.append(summary)
 
     await session.commit()

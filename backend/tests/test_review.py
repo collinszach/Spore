@@ -22,7 +22,7 @@ from app.repositories.capture import CaptureRepository
 from app.repositories.note import NoteRepository
 from app.repositories.review import ReviewRepository
 from app.routers.review import _get_embeddings_client, _get_vault_writer
-from app.vault import VaultWriter
+from app.vault import NoteDoc, VaultWriter
 
 TOKEN = os.environ.get("SPORE_CAPTURE_TOKEN", "dev-token")
 
@@ -43,10 +43,11 @@ class SpyVaultWriter:
     """Records write_note calls; never touches the filesystem."""
 
     def __init__(self):
-        self.calls: list[Note] = []
+        self.calls: list[NoteDoc] = []
 
-    async def write_note(self, note: Note) -> None:
-        self.calls.append(note)
+    async def write_note(self, doc: NoteDoc) -> str:
+        self.calls.append(doc)
+        return f"00_Inbox/{doc.note_id}.md"
 
 
 @pytest.fixture
@@ -230,6 +231,7 @@ async def test_approve_floor_case_creates_note_and_logs_idea_event(
         assert note.embedding is not None
         assert note.type == "fleeting"
         assert note.title == "floor case capture body"
+        assert note.vault_path == f"00_Inbox/{note.id}.md"
         cleanup["note"].append(note.id)
 
         from sqlalchemy import select
@@ -243,7 +245,7 @@ async def test_approve_floor_case_creates_note_and_logs_idea_event(
         cleanup["idea_event"].append(events[0].id)
 
     assert len(vault_spy.calls) == 1
-    assert vault_spy.calls[0].id == note.id
+    assert vault_spy.calls[0].note_id == str(note.id)
 
 
 async def test_approve_needs_review_case_removes_tag(client, db_sessionmaker, cleanup, vault_spy):

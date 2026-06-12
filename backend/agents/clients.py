@@ -149,11 +149,15 @@ class FakeClaudeClient:
     """Canned, schema-valid Sorter response for tests / no-key local dev.
 
     Returns a `TriageResult`-shaped JSON document. A small steering rule lets
-    tests control the output without a live model: if the user prompt
+    tests control the output without a live model: if the CAPTURE BODY
     contains "TODO" (case-insensitive), the response is classified as a task
     with high confidence; otherwise it's a fleeting note with a mid-high
     confidence. `related_ids` / `duplicate_of` are left empty — the pipeline
     fills those in from the kNN + dedup step before validation.
+
+    The rule inspects only the capture body, not the whole prompt: neighbor
+    notes are listed in the prompt with their titles, and a neighbor titled
+    "TODO ..." must not flip an unrelated capture to a task.
     """
 
     model = "fake-sorter"
@@ -161,8 +165,19 @@ class FakeClaudeClient:
     def __init__(self, usage: ClaudeUsage | None = None):
         self.usage = usage or ClaudeUsage(input_tokens=0, output_tokens=0)
 
+    @staticmethod
+    def _capture_body(user: str) -> str:
+        """Extract just the 'Capture body:' section of the Sorter prompt."""
+        marker = "Capture body:\n"
+        start = user.find(marker)
+        if start == -1:
+            return user
+        start += len(marker)
+        end = user.find("\n\nCandidate related notes", start)
+        return user[start:] if end == -1 else user[start:end]
+
     async def complete(self, system: str, user: str) -> ClaudeResponse:
-        if "todo" in user.lower():
+        if "todo" in self._capture_body(user).lower():
             payload = {
                 "type": "task",
                 "tags": ["task"],

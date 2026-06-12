@@ -18,9 +18,12 @@ ios/build/**
 *.xcuserstate
 DerivedData/
 
-# Vault (Obsidian) — submodule, never committed here except sandbox
+# Vault (Obsidian) — submodule. Dev sandbox scratch (incl. its nested git repo)
+# is never versioned in the app repo; keep only the placeholder dir.
 vault/*
 !vault/_sandbox/
+vault/_sandbox/*
+!vault/_sandbox/.gitkeep
 
 # Misc
 .DS_Store

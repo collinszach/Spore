@@ -39,6 +39,7 @@ from app.repositories.idea_event import IdeaEventRepository
 from app.repositories.note import NoteRepository
 from app.repositories.review import ReviewRepository
 from app.vault import VaultWriter
+from app.vault_adapter import note_to_doc
 
 NEEDS_REVIEW_TAG = "needs-review"
 
@@ -120,7 +121,7 @@ async def _approve(
         note = await note_repo.update(note.id, tags=new_tags)
         assert note is not None
 
-    await vault_writer.write_note(note)
+    note = await _write_note_to_vault(session, note, item, vault_writer)
 
     idea_event_repo = IdeaEventRepository(session)
     await idea_event_repo.create(note_id=note.id, to_state="seedling", reason="manual")
@@ -168,7 +169,7 @@ async def _redirect(
         assert updated is not None
         note = updated
 
-    await vault_writer.write_note(note)
+    note = await _write_note_to_vault(session, note, item, vault_writer)
 
     review_repo = ReviewRepository(session)
     await review_repo.set_status(item.id, "redirected", resolved_at=_now())
@@ -275,6 +276,29 @@ async def _ensure_note(
         source_capture_id=capture_id,
     )
     return note
+
+
+async def _write_note_to_vault(
+    session: AsyncSession,
+    note: Note,
+    item: ReviewItem,
+    vault_writer: VaultWriter,
+) -> Note:
+    """Write `note` to the vault (Epic 5) and persist the returned
+    `vault_path` onto the note row."""
+    body = ""
+    if item.capture_id is not None:
+        capture_repo = CaptureRepository(session)
+        capture = await capture_repo.get(item.capture_id)
+        body = (capture.body if capture else None) or ""
+
+    doc = await note_to_doc(session, note, body=body)
+    vault_path = await vault_writer.write_note(doc)
+
+    note_repo = NoteRepository(session)
+    updated = await note_repo.update(note.id, vault_path=vault_path)
+    assert updated is not None
+    return updated
 
 
 def _now() -> datetime:

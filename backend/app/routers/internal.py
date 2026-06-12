@@ -17,10 +17,16 @@ from agents.triage import triage_batch
 from app.auth import require_token
 from app.config import settings
 from app.db import get_session
+from app.vault import VaultWriter, get_vault_writer
 
 logger = logging.getLogger("spore")
 
 router = APIRouter(prefix="/internal")
+
+
+def _get_vault_writer() -> VaultWriter:
+    """FastAPI dependency wrapper so tests can override with a fake/spy."""
+    return get_vault_writer()
 
 
 @router.post("/triage-batch", dependencies=[Depends(require_token)])
@@ -28,13 +34,16 @@ async def run_triage_batch(
     request: Request,
     limit: int = Query(default=None, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
+    vault_writer: VaultWriter = Depends(_get_vault_writer),
 ):
     batch_limit = limit or settings.triage_batch_limit
 
     claude = get_claude_client()
     embeddings = get_embeddings_client()
 
-    summaries = await triage_batch(session, limit=batch_limit, claude=claude, embeddings=embeddings)
+    summaries = await triage_batch(
+        session, limit=batch_limit, claude=claude, embeddings=embeddings, vault_writer=vault_writer
+    )
 
     logger.info(
         "triage_batch_completed",

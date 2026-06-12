@@ -33,7 +33,10 @@ services:
     environment:
       DATABASE_URL: postgresql://spore:spore@db:5432/spore
       REDIS_URL: redis://redis:6379/0
+      VAULT_PATH: /vault/_sandbox                    # dev sandbox; real vault is sacred (CLAUDE.md rule 6)
     ports: ["8020:8020"]                            # Spore API (KoastCast uses 8010/8011 — avoid clash)
+    volumes:
+      - ./vault:/vault                               # persist agent vault writes on the host (git repo under _sandbox)
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
