@@ -19,7 +19,11 @@ CREATE TABLE raw_capture (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     processed_at TIMESTAMPTZ
 );
-SELECT create_hypertable('raw_capture', 'created_at', if_not_exists => TRUE);
+-- NOTE: raw_capture is intentionally a plain table, not a TimescaleDB hypertable.
+-- Hypertables require the partition column in the PK and cannot be referenced by
+-- foreign keys (note.source_capture_id and review_item.capture_id both FK to
+-- raw_capture.id). Personal capture volume doesn't need time-partitioning.
+-- The timescaledb + vector extensions remain enabled for later use.
 CREATE INDEX idx_capture_status ON raw_capture (status, created_at);
 
 -- ── Notes (machine mirror of vault prose) ────────────────────────────────

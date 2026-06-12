@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: spore
       POSTGRES_PASSWORD: spore
       POSTGRES_DB: spore
-    ports: ["5432:5432"]
+    expose: ["5432"]                                 # internal-only; reachable as db:5432 on the compose network (NFR4)
     volumes:
       - spore_pg:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d:ro   # 001_init.sql runs on first boot
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    expose: ["6379"]                                 # internal-only; reachable as redis:6379 on the compose network (NFR4)
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
