@@ -3,13 +3,13 @@
 _Last updated: 2026-06-12. Update at the end of every session._
 
 ## Now
-AUTONOMOUS BACKEND COMPLETE. **Stories 1.1–1.3 + Epics 3, 4, 5, 6, 7 DONE + real AI + n8n triage cron.**
-The full loop runs hands-free: capture → n8n cron (every 2 min) → real Claude Haiku Sorter + LOCAL Ollama
-embeddings → confidence gate → review queue → Builder skills → git-versioned vault; idea pipeline state machine.
-97 tests green; every layer verified live (incl. the cron auto-triaging a capture end-to-end).
-Cost ~$0.0007/capture (Haiku) + $0 embeddings (local Ollama); Sonnet build-out ~$0.016/run (opt-in).
-Next (backend, no secrets needed): **Epic 8** resurfacing/digests (Curator) + reminder-fire (delivery stubbed),
-**Epic 9** cost dashboard/metrics. Needs YOU: **Epic 2 iOS** (Xcode), push delivery + **1.4/1.5** (APNs/TUNNEL/TELEGRAM tokens).
+**ENTIRE BACKEND COMPLETE & LIVE.** All backend epics done: 1.1–1.3 + Epics 3,4,5,6,7,8,9 + real AI + n8n cron.
+Autonomous loop runs hands-free: capture → n8n cron (2 min) → real Claude Haiku Sorter + LOCAL Ollama
+embeddings → confidence gate → review queue → Builder skills (Sonnet) → git vault; idea pipeline state machine;
+resurfacing/digests (Curator); reminders; cost dashboard + ops metrics; corrections feedback loop.
+**122 tests green**; every layer verified live. Cost ~$0.0007/capture; $0 embeddings (local Ollama).
+REMAINING needs YOU: **Epic 2 iOS** (SwiftUI, requires Xcode), and secret-gated delivery —
+**1.4** Cloudflare Tunnel (TUNNEL_TOKEN), **1.5** Telegram (TELEGRAM_BOT_TOKEN), **APNs push** (.p8) wiring the notifier seam.
 
 ## Known ops nits
 - api container runs as root → vault files on host owned by root (host `git` needs `safe.directory`). Add a non-root user to backend/Dockerfile later.
@@ -42,16 +42,20 @@ Next (backend, no secrets needed): **Epic 8** resurfacing/digests (Curator) + re
 - [x] **Real AI wired** — Claude Haiku Sorter (key in remote .env) + LOCAL Ollama embeddings (mxbai-embed-large 1024d); verified live end-to-end
 - [x] **Epic 6** — declarative skills registry + Builder runtime (Sonnet build-out); /skills/{name}/run; starter skills; verified live
 - [x] **Epic 7** — idea pipeline state machine + /pipeline API + promotion/stale rules; verified live (409 on invalid transition)
-- [x] **n8n triage cron** — autonomous batched triage every 2 min (FR36); verified live auto-triage; 97 tests
+- [x] **n8n triage cron** — autonomous batched triage every 2 min (FR36); verified live auto-triage
+- [x] **Epic 8** — reminders/resurfacing/Curator digests (FR30-33); notifier seam (delivery stubbed); verified live
+- [x] **Epic 9** — cost dashboard + ops metrics + corrections feedback (FR35/37); 122 tests; verified live
+- [x] **ALL BACKEND EPICS COMPLETE** (1,3,4,5,6,7,8,9). 122 tests green.
 
 ## Infra: Ollama
 - `ollama` service in compose (internal-only). Model `mxbai-embed-large` pulled into `spore_ollama` volume.
   If recreated, re-pull: `docker compose exec ollama ollama pull mxbai-embed-large`.
 
-## Next 3 stories
-1. **Epic 8** — resurfacing/digests (Curator) + reminder-fire (FR30-34); delivery stubbed (no APNs/TG token yet)
-2. **Epic 9** — cost dashboard/metrics endpoint over skill_run ledger (FR35); observability (FR37 corrections→tuning)
-3. **Epic 2** iOS app (Xcode) — or **1.4/1.5** once TUNNEL_TOKEN / TELEGRAM_BOT_TOKEN / APNs .p8 provided
+## Next (all need YOU — Xcode or secrets)
+1. **Epic 2 iOS** — SwiftUI capture app (shell, offline queue, review swipe, pipeline, widgets). I can write Swift; needs Xcode to compile/run.
+2. **1.4** Cloudflare Tunnel — needs TUNNEL_TOKEN (external reach + POST /devices APNs registration)
+3. **1.5** Telegram capture — needs TELEGRAM_BOT_TOKEN (zero-build capture channel; n8n webhook → /capture)
+4. **APNs push** — wire the notify.py seam to real APNs (needs .p8 key) so reminders/digests deliver
 
 ## Open decisions (block specific stories)
 - ADR-001 Whisper API vs local → blocks Story 2.6
