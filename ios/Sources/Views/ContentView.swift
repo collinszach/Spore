@@ -17,21 +17,13 @@ struct ContentView: View {
                 .tabItem { Label("Capture", systemImage: "square.and.pencil") }
                 .tag(Tab.capture)
 
-            PlaceholderView(viewModel: PlaceholderViewModel(
-                title: "Review",
-                subtitle: "Coming soon — swipe through triaged captures here.",
-                systemImage: "checkmark.circle"
-            ))
-            .tabItem { Label("Review", systemImage: "checkmark.circle") }
-            .tag(Tab.review)
+            ReviewView(viewModel: ReviewViewModel(api: URLSessionSporeAPI()))
+                .tabItem { Label("Review", systemImage: "checkmark.circle") }
+                .tag(Tab.review)
 
-            PlaceholderView(viewModel: PlaceholderViewModel(
-                title: "Pipeline",
-                subtitle: "Coming soon — see what's being processed.",
-                systemImage: "arrow.triangle.2.circlepath"
-            ))
-            .tabItem { Label("Pipeline", systemImage: "arrow.triangle.2.circlepath") }
-            .tag(Tab.pipeline)
+            PipelineView(viewModel: PipelineViewModel(api: URLSessionSporeAPI()))
+                .tabItem { Label("Pipeline", systemImage: "arrow.triangle.2.circlepath") }
+                .tag(Tab.pipeline)
 
             PlaceholderView(viewModel: PlaceholderViewModel(
                 title: "Notes",
