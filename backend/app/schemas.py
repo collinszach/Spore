@@ -75,3 +75,22 @@ class MergeIn(BaseModel):
     """POST /review/{id}/merge request body — the existing note to merge into."""
 
     target_note_id: uuid.UUID
+
+
+class PipelineMoveIn(BaseModel):
+    """POST /pipeline/{note_id}/move request body (Story 7.1)."""
+
+    to_state: str = Field(..., min_length=1)
+
+
+class PipelineNoteOut(BaseModel):
+    """Shape of a note row in pipeline list/move responses (Story 7.1)."""
+
+    id: uuid.UUID
+    title: str | None = None
+    type: str | None = None
+    idea_state: str | None = None
+    domain: str | None = None
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

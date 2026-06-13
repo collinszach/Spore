@@ -60,5 +60,13 @@ class Settings(BaseSettings):
     skills_dir: str = str(_REPO_ROOT / "skills")
     builder_model: str = "claude-sonnet-4-6"
 
+    # Epic 7 — Idea pipeline & state machine (Stories 7.3 / 7.4).
+    # promote_ref_count: minimum incoming note_link references before a note
+    # is "promotion-ready" (suggest its next forward idea_state).
+    # stale_days: how long a 'seedling' can sit untouched before it's flagged
+    # as stale in GET /pipeline/suggestions and POST /internal/stale-sweep.
+    promote_ref_count: int = 3
+    stale_days: int = 14
+
 
 settings = Settings()

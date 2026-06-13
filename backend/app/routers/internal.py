@@ -17,6 +17,7 @@ from agents.triage import triage_batch
 from app.auth import require_token
 from app.config import settings
 from app.db import get_session
+from app.services import pipeline_service
 from app.vault import VaultWriter, get_vault_writer
 
 logger = logging.getLogger("spore")
@@ -70,6 +71,24 @@ async def run_triage_batch(
                 }
                 for s in summaries
             ],
+        },
+        "error": None,
+    }
+
+
+@router.post("/stale-sweep", dependencies=[Depends(require_token)])
+async def run_stale_sweep(session: AsyncSession = Depends(get_session)):
+    """Return the current stale-'seedling' set (Story 7.4).
+
+    n8n's daily digest flow calls this on a schedule. Currently read-only —
+    the response is the same `stale` shape as GET /pipeline/suggestions;
+    repeated calls are naturally idempotent since no rows are written.
+    """
+    stale = await pipeline_service.stale_seedling_suggestions(session)
+    return {
+        "ok": True,
+        "data": {
+            "stale": [{**s, "note_id": str(s["note_id"])} for s in stale],
         },
         "error": None,
     }

@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 
 from app.routers import capture as capture_router
 from app.routers import internal as internal_router
+from app.routers import pipeline as pipeline_router
 from app.routers import review as review_router
 from app.routers import skills as skills_router
 
@@ -21,6 +22,7 @@ logger = logging.getLogger("spore")
 app = FastAPI(title="Spore API")
 app.include_router(capture_router.router)
 app.include_router(internal_router.router)
+app.include_router(pipeline_router.router)
 app.include_router(review_router.router)
 app.include_router(skills_router.router)
 
