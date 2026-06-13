@@ -53,10 +53,12 @@ services:
 
   n8n:
     image: n8nio/n8n:latest
+    env_file: .env                                 # SPORE_CAPTURE_TOKEN for the triage cron auth header
     environment:
       N8N_PORT: 5678
       N8N_HOST: localhost
       GENERIC_TIMEZONE: America/New_York
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"        # allow {{ $env.SPORE_CAPTURE_TOKEN }} in the HTTP node
     ports: ["5678:5678"]
     volumes:
       - spore_n8n:/home/node/.n8n

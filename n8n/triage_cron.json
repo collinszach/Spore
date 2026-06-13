@@ -1,0 +1,49 @@
+{
+  "id": "sporetriagecron01",
+  "name": "Spore — Triage Cron",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "minutes", "minutesInterval": 2 }
+          ]
+        }
+      },
+      "id": "b1a1c0de-0001-4000-8000-000000000001",
+      "name": "Every 2 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8020/internal/triage-batch",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.SPORE_CAPTURE_TOKEN }}" }
+          ]
+        },
+        "options": { "timeout": 120000 }
+      },
+      "id": "b1a1c0de-0002-4000-8000-000000000002",
+      "name": "POST /internal/triage-batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    }
+  ],
+  "connections": {
+    "Every 2 min": {
+      "main": [
+        [
+          { "node": "POST /internal/triage-batch", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}
