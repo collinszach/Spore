@@ -16,7 +16,8 @@ struct SporeApp: App {
             ContentView()
                 .onChange(of: scenePhase) { _, newPhase in
                     if newPhase == .active {
-                        let queue = CaptureQueue(modelContext: sharedModelContainer.mainContext)
+                        let store = SwiftDataCaptureStore(modelContext: sharedModelContainer.mainContext)
+                        let queue = CaptureQueue(store: store)
                         Task {
                             await queue.drain()
                         }

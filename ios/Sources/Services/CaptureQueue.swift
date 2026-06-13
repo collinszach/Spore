@@ -1,16 +1,15 @@
 import Foundation
-import SwiftData
 
 /// Offline-first capture queue (Story 2.2 / NFR1 / NFR6).
 ///
-/// `enqueue` writes a `CaptureQueueItem` to SwiftData immediately — no
-/// network on the save path, so it stays well under the 500ms budget.
-/// `drain()` is a separate operation that syncs any unsynced items to
-/// `/capture`, retrying with exponential backoff on failure.
+/// `enqueue` writes a `QueuedCapture` to the injected `CaptureStore`
+/// immediately — no network on the save path, so it stays well under the
+/// 500ms budget. `drain()` is a separate operation that syncs any unsynced
+/// items to `/capture`, retrying with exponential backoff on failure.
 @MainActor
 @Observable
 final class CaptureQueue {
-    private let modelContext: ModelContext
+    private let store: CaptureStore
     private let api: CaptureAPI
     private let deviceID: String?
 
@@ -20,12 +19,12 @@ final class CaptureQueue {
     private(set) var isDraining = false
 
     init(
-        modelContext: ModelContext,
+        store: CaptureStore,
         api: CaptureAPI = URLSessionCaptureAPI(),
         deviceID: String? = nil,
         baseBackoff: TimeInterval = 1.0
     ) {
-        self.modelContext = modelContext
+        self.store = store
         self.api = api
         self.deviceID = deviceID
         self.baseBackoff = baseBackoff
@@ -35,10 +34,9 @@ final class CaptureQueue {
     /// (== capture_uuid). This must not perform any network I/O.
     @discardableResult
     func enqueue(body: String, source: String = "ios_quick") -> UUID {
-        let item = CaptureQueueItem(body: body, source: source)
-        modelContext.insert(item)
-        try? modelContext.save()
-        return item.id
+        let capture = QueuedCapture(body: body, source: source)
+        store.insert(capture)
+        return capture.id
     }
 
     /// Syncs all unsynced items to the backend. Safe to call repeatedly —
@@ -49,11 +47,7 @@ final class CaptureQueue {
         isDraining = true
         defer { isDraining = false }
 
-        let descriptor = FetchDescriptor<CaptureQueueItem>(
-            predicate: #Predicate { $0.syncedAt == nil }
-        )
-
-        guard let items = try? modelContext.fetch(descriptor) else { return }
+        let items = store.unsynced()
 
         for item in items {
             do {
@@ -63,15 +57,11 @@ final class CaptureQueue {
                     source: item.source,
                     deviceID: deviceID
                 )
-                item.syncedAt = Date()
-                item.lastError = nil
+                store.markSynced(id: item.id, at: Date())
             } catch {
-                item.attemptCount += 1
-                item.lastError = String(describing: error)
+                store.recordFailure(id: item.id, error: String(describing: error))
             }
         }
-
-        try? modelContext.save()
     }
 
     /// Exponential backoff delay for a given attempt count (1x, 2x, 4x, 8x...

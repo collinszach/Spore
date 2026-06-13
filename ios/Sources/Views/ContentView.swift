@@ -60,7 +60,8 @@ struct ContentView: View {
     }
 
     private func makeCaptureViewModel() -> CaptureViewModel {
-        CaptureViewModel(queue: CaptureQueue(modelContext: modelContext))
+        let store = SwiftDataCaptureStore(modelContext: modelContext)
+        return CaptureViewModel(queue: CaptureQueue(store: store))
     }
 }
 

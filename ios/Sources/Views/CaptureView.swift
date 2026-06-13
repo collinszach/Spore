@@ -58,9 +58,10 @@ struct CaptureView: View {
 
 #Preview {
     let container = PreviewSupport.container
+    let store = SwiftDataCaptureStore(modelContext: container.mainContext)
     CaptureView(viewModel: CaptureViewModel(
         queue: CaptureQueue(
-            modelContext: container.mainContext,
+            store: store,
             api: PreviewSupport.NoopAPI()
         )
     ))

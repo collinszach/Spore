@@ -1,12 +1,11 @@
 import XCTest
-import SwiftData
 @testable import Spore
 
 @MainActor
 final class CaptureViewModelTests: XCTestCase {
-    func testSubmitEnqueuesAndClearsDraft() throws {
-        let context = try TestSupport.makeContext()
-        let queue = CaptureQueue(modelContext: context, api: MockCaptureAPI())
+    func testSubmitEnqueuesAndClearsDraft() {
+        let store = InMemoryCaptureStore()
+        let queue = CaptureQueue(store: store, api: MockCaptureAPI())
         let viewModel = CaptureViewModel(queue: queue)
 
         viewModel.draft = "  a fleeting thought  "
@@ -15,14 +14,13 @@ final class CaptureViewModelTests: XCTestCase {
         XCTAssertNotNil(id)
         XCTAssertEqual(viewModel.draft, "")
 
-        let items = try context.fetch(FetchDescriptor<CaptureQueueItem>())
-        XCTAssertEqual(items.count, 1)
-        XCTAssertEqual(items.first?.body, "a fleeting thought")
+        XCTAssertEqual(store.captures.count, 1)
+        XCTAssertEqual(store.captures.first?.body, "a fleeting thought")
     }
 
-    func testSubmitWithEmptyDraftDoesNothing() throws {
-        let context = try TestSupport.makeContext()
-        let queue = CaptureQueue(modelContext: context, api: MockCaptureAPI())
+    func testSubmitWithEmptyDraftDoesNothing() {
+        let store = InMemoryCaptureStore()
+        let queue = CaptureQueue(store: store, api: MockCaptureAPI())
         let viewModel = CaptureViewModel(queue: queue)
 
         viewModel.draft = "   "
@@ -30,14 +28,12 @@ final class CaptureViewModelTests: XCTestCase {
 
         XCTAssertNil(id)
         XCTAssertEqual(viewModel.draft, "   ")
-
-        let items = try context.fetch(FetchDescriptor<CaptureQueueItem>())
-        XCTAssertEqual(items.count, 0)
+        XCTAssertEqual(store.captures.count, 0)
     }
 
-    func testCanSubmitReflectsDraftState() throws {
-        let context = try TestSupport.makeContext()
-        let queue = CaptureQueue(modelContext: context, api: MockCaptureAPI())
+    func testCanSubmitReflectsDraftState() {
+        let store = InMemoryCaptureStore()
+        let queue = CaptureQueue(store: store, api: MockCaptureAPI())
         let viewModel = CaptureViewModel(queue: queue)
 
         XCTAssertFalse(viewModel.canSubmit)
