@@ -51,11 +51,18 @@ REMAINING needs YOU: **Epic 2 iOS** (SwiftUI, requires Xcode), and secret-gated 
 - `ollama` service in compose (internal-only). Model `mxbai-embed-large` pulled into `spore_ollama` volume.
   If recreated, re-pull: `docker compose exec ollama ollama pull mxbai-embed-large`.
 
-## Next (all need YOU — Xcode or secrets)
-1. **Epic 2 iOS** — SwiftUI capture app (shell, offline queue, review swipe, pipeline, widgets). I can write Swift; needs Xcode to compile/run.
-2. **1.4** Cloudflare Tunnel — needs TUNNEL_TOKEN (external reach + POST /devices APNs registration)
-3. **1.5** Telegram capture — needs TELEGRAM_BOT_TOKEN (zero-build capture channel; n8n webhook → /capture)
-4. **APNs push** — wire the notify.py seam to real APNs (needs .p8 key) so reminders/digests deliver
+## iOS (Epic 2) — in progress
+- [x] **2.1** app shell (5 tabs, launches to Capture autofocus) + **2.2** offline SwiftData capture queue.
+  XcodeGen project; CaptureStore protocol (SwiftData prod / in-memory tests); xcodebuild build+test GREEN (10 tests).
+- Toolchain present locally (Xcode 26.4) → iOS is build+test verifiable here.
+- Connectivity: app reads SPORE_API_BASE_URL/SPORE_CAPTURE_TOKEN from Info.plist. To hit the live backend, point at the
+  host's Tailscale IP `http://100.91.198.28:8020` (phone on Tailscale) until the Cloudflare tunnel (1.4) lands.
+- Next iOS: Review tab wired to /review (approve/redirect/merge/discard), Pipeline tab → /pipeline, then 2.3 Share Sheet, 2.4 App Intents/Siri, 2.5 Widget, 2.6 Voice (ADR-001).
+
+## Needs YOU (secrets)
+- **1.4** Cloudflare Tunnel — TUNNEL_TOKEN (external reach + POST /devices APNs registration)
+- **1.5** Telegram capture — TELEGRAM_BOT_TOKEN (zero-build capture channel; n8n webhook → /capture)
+- **APNs push** — .p8 key to wire notify.py seam so reminders/digests deliver
 
 ## Open decisions (block specific stories)
 - ADR-001 Whisper API vs local → blocks Story 2.6
