@@ -1,0 +1,68 @@
+import SwiftUI
+import SwiftData
+import UIKit
+
+/// The Capture tab — the app's hero surface. Opens with keyboard focus so
+/// the user can start typing immediately (NFR1: zero-friction capture).
+struct CaptureView: View {
+    @State private var viewModel: CaptureViewModel
+    @FocusState private var isFocused: Bool
+
+    init(viewModel: CaptureViewModel) {
+        _viewModel = State(initialValue: viewModel)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("What's on your mind?")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+
+                TextEditor(text: $viewModel.draft)
+                    .focused($isFocused)
+                    .frame(minHeight: 160)
+                    .padding(8)
+                    .background(.background.secondary, in: RoundedRectangle(cornerRadius: 12))
+                    .accessibilityLabel("Capture text")
+                    .accessibilityHint("Enter a thought to save it to Spore")
+
+                Button(action: submit) {
+                    Label("Capture", systemImage: "arrow.up.circle.fill")
+                        .font(.title3.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!viewModel.canSubmit)
+                .accessibilityHint("Saves your thought and clears the field")
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Capture")
+            .onAppear {
+                isFocused = true
+                viewModel.drainQueue()
+            }
+        }
+    }
+
+    private func submit() {
+        guard viewModel.submit() != nil else { return }
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        isFocused = true
+    }
+}
+
+#Preview {
+    let container = PreviewSupport.container
+    CaptureView(viewModel: CaptureViewModel(
+        queue: CaptureQueue(
+            modelContext: container.mainContext,
+            api: PreviewSupport.NoopAPI()
+        )
+    ))
+    .modelContainer(container)
+}
