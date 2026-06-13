@@ -54,9 +54,10 @@ REMAINING needs YOU: **Epic 2 iOS** (SwiftUI, requires Xcode), and secret-gated 
 ## iOS (Epic 2) — in progress
 - [x] **2.1** shell (5 tabs, Capture autofocus) + **2.2** offline SwiftData capture queue (CaptureStore protocol; 10 tests)
 - [x] **Review tab** → /review with Approve/Redirect/Merge/Discard (optimistic + restore-on-fail); **Pipeline tab** → /pipeline grouped by state
-- xcodebuild build+test GREEN: **21 tests, 0 failures** (iPhone 16 Pro / iOS 18.2). iOS is build+test verifiable locally (Xcode 26.4).
+- [x] **2.3** Share Sheet · **2.4** App Intents/Siri ("Note to Spore") · **2.5** Widget + Control Center (App Group shared queue)
+- xcodebuild build (all targets) + test GREEN: **23 tests, 0 failures** (iPhone 16 Pro / iOS 18.2). iOS build+test verifiable locally (Xcode 26.4).
 - To run against the live backend: set Info.plist `SPORE_API_BASE_URL=http://100.91.198.28:8020` (phone on Tailscale) + `SPORE_CAPTURE_TOKEN=dev-local-token`, build in Xcode. (Cloudflare tunnel = Story 1.4.)
-- Next iOS surfaces: 2.3 Share Sheet, 2.4 App Intents/Siri, 2.5 Widget, 2.6 Voice (ADR-001).
+- Remaining iOS: **2.6 Voice capture + transcription** — BLOCKED on ADR-001 (Whisper API vs local). User prefers local → recommend local Whisper service on the host (Ollama-style).
 
 ## Needs YOU (secrets)
 - **1.4** Cloudflare Tunnel — TUNNEL_TOKEN (external reach + POST /devices APNs registration)
