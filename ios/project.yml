@@ -18,6 +18,11 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: Sources
+    entitlements:
+      path: Sources/App/Spore.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.spore.app
     info:
       path: Sources/App/Info.plist
       properties:
@@ -28,6 +33,10 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        CFBundleURLTypes:
+          - CFBundleURLName: com.spore.app
+            CFBundleURLSchemes:
+              - spore
         SPORE_API_BASE_URL: ""
         SPORE_CAPTURE_TOKEN: ""
     settings:
@@ -36,6 +45,78 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.spore.app
         SWIFT_EMIT_LOC_STRINGS: YES
         TARGETED_DEVICE_FAMILY: "1"
+    dependencies:
+      - target: ShareExtension
+        embed: true
+      - target: SporeWidget
+        embed: true
+
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: ShareExtension
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+      - path: Sources/Shared
+      - path: Sources/Services
+      - path: Sources/Models
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.spore.app
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Spore
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+              NSExtensionActivationSupportsImageWithMaxCount: 1
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.spore.app.ShareExtension
+        SWIFT_EMIT_LOC_STRINGS: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES
+
+  SporeWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: SporeWidget/Sources
+      - path: Sources/Shared
+      - path: Sources/Services
+      - path: Sources/Models
+      - path: Sources/Intents
+    entitlements:
+      path: SporeWidget/SporeWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.spore.app
+    info:
+      path: SporeWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Spore Capture
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.spore.app.SporeWidget
+        SWIFT_EMIT_LOC_STRINGS: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES
 
   SporeTests:
     type: bundle.unit-test

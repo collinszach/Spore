@@ -49,6 +49,9 @@ struct ContentView: View {
             }
             networkMonitor.start()
         }
+        .onReceive(NotificationCenter.default.publisher(for: DeepLink.openCaptureTab)) { _ in
+            selectedTab = .capture
+        }
     }
 
     private func makeCaptureViewModel() -> CaptureViewModel {

@@ -5,11 +5,7 @@ import SwiftData
 struct SporeApp: App {
     @Environment(\.scenePhase) private var scenePhase
 
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([CaptureQueueItem.self])
-        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        return try! ModelContainer(for: schema, configurations: [configuration])
-    }()
+    var sharedModelContainer: ModelContainer = AppGroup.makeSharedModelContainer()
 
     var body: some Scene {
         WindowGroup {
@@ -22,6 +18,9 @@ struct SporeApp: App {
                             await queue.drain()
                         }
                     }
+                }
+                .onOpenURL { url in
+                    DeepLink.handle(url)
                 }
         }
         .modelContainer(sharedModelContainer)
