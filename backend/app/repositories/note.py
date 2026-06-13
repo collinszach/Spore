@@ -5,10 +5,14 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Note, NoteLink
+
+# idea_state values excluded from resurfacing/digest "active" surfaces
+# (Story 8.2/8.3): a shipped or archived idea doesn't need a nudge.
+_INACTIVE_STATES = ("shipped", "archived")
 
 
 class NoteRepository:
@@ -92,6 +96,45 @@ class NoteRepository:
             .where(Note.embedding.is_not(None))
             .order_by(Note.embedding.cosine_distance(embedding))
             .limit(k)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_active(self, limit: int = 1000) -> list[Note]:
+        """Return notes whose idea_state is not shipped/archived (Story 8.2)."""
+        stmt = (
+            select(Note)
+            .where(
+                Note.idea_state.is_(None) | Note.idea_state.not_in(_INACTIVE_STATES)
+            )
+            .order_by(Note.created_at.asc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_orphans(self, limit: int = 200) -> list[Note]:
+        """Return notes with NO incoming or outgoing note_link row (Story 8.3 weekly digest).
+
+        Set-based: notes whose id never appears as either src_id or dst_id.
+        """
+        linked_ids = select(NoteLink.src_id).union(select(NoteLink.dst_id)).scalar_subquery()
+        stmt = (
+            select(Note)
+            .where(Note.id.not_in(linked_ids))
+            .order_by(Note.created_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_dangling_links(self, limit: int = 200) -> list[NoteLink]:
+        """Return note_link rows whose src_id or dst_id has no matching note row."""
+        note_ids = select(Note.id).scalar_subquery()
+        stmt = (
+            select(NoteLink)
+            .where(or_(NoteLink.src_id.not_in(note_ids), NoteLink.dst_id.not_in(note_ids)))
+            .limit(limit)
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())

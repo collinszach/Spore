@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,3 +45,29 @@ class ReminderRepository:
             delete(Reminder).where(Reminder.id == reminder_id)
         )
         return result.rowcount > 0
+
+    async def list_due(self, now: datetime, limit: int = 200) -> list[Reminder]:
+        """Return scheduled reminders with `fire_at <= now`, earliest first (Story 8.1)."""
+        stmt = (
+            select(Reminder)
+            .where(Reminder.status == "scheduled", Reminder.fire_at <= now)
+            .order_by(Reminder.fire_at.asc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_due_today(self, start: datetime, end: datetime, limit: int = 200) -> list[Reminder]:
+        """Return scheduled reminders with `fire_at` in [start, end) (Story 8.3 daily digest)."""
+        stmt = (
+            select(Reminder)
+            .where(
+                Reminder.status == "scheduled",
+                Reminder.fire_at >= start,
+                Reminder.fire_at < end,
+            )
+            .order_by(Reminder.fire_at.asc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

@@ -7,6 +7,7 @@ later stories (1.2+) will rely on DATABASE_URL / REDIS_URL being correct.
 
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Repo root = two levels up from backend/app/ (backend/app/config.py -> backend/ -> repo root).
@@ -67,6 +68,25 @@ class Settings(BaseSettings):
     # as stale in GET /pipeline/suggestions and POST /internal/stale-sweep.
     promote_ref_count: int = 3
     stale_days: int = 14
+
+    # Epic 8 — Resurfacing & reminders (Curator).
+    # curator_model: cheap model for the optional one-line digest narrative
+    # (CLAUDE.md rule 7: cost discipline — Curator default = $0).
+    # curator_narrative_enabled: gate for the narrative LLM call; off by
+    # default so digests are pure structured aggregation (no skill_run cost).
+    # resurface_schedule_days: whole-days-since-creation buckets at which a
+    # note is "due to resurface" (FR31). CSV via RESURFACE_SCHEDULE_DAYS.
+    curator_model: str = "claude-haiku-4-5-20251001"
+    curator_narrative_enabled: bool = False
+    resurface_schedule_days: list[int] = [1, 3, 7, 30]
+
+    @field_validator("resurface_schedule_days", mode="before")
+    @classmethod
+    def _parse_resurface_schedule_days(cls, value):
+        """Allow `RESURFACE_SCHEDULE_DAYS=1,3,7,30` (comma-separated) from env."""
+        if isinstance(value, str):
+            return [int(v.strip()) for v in value.split(",") if v.strip()]
+        return value
 
 
 settings = Settings()

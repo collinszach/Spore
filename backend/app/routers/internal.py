@@ -12,12 +12,15 @@ import logging
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agents import curator
 from agents.clients import get_claude_client, get_embeddings_client
 from agents.triage import triage_batch
 from app.auth import require_token
 from app.config import settings
 from app.db import get_session
+from app.notify import Notifier, get_notifier
 from app.services import pipeline_service
+from app.services.resurface_service import fire_due_reminders, resurface_due_notes
 from app.vault import VaultWriter, get_vault_writer
 
 logger = logging.getLogger("spore")
@@ -28,6 +31,11 @@ router = APIRouter(prefix="/internal")
 def _get_vault_writer() -> VaultWriter:
     """FastAPI dependency wrapper so tests can override with a fake/spy."""
     return get_vault_writer()
+
+
+def _get_notifier() -> Notifier:
+    """FastAPI dependency wrapper so tests can override with a SpyNotifier (Epic 8)."""
+    return get_notifier()
 
 
 @router.post("/triage-batch", dependencies=[Depends(require_token)])
@@ -92,3 +100,147 @@ async def run_stale_sweep(session: AsyncSession = Depends(get_session)):
         },
         "error": None,
     }
+
+
+@router.post("/reminder-fire", dependencies=[Depends(require_token)])
+async def run_reminder_fire(
+    session: AsyncSession = Depends(get_session),
+    notifier: Notifier = Depends(_get_notifier),
+):
+    """Fire all due reminders (Story 8.1, FR30).
+
+    n8n's `reminder-fire` flow calls this every minute. For each due
+    reminder (status='scheduled', fire_at <= now): notify, then advance per
+    `recurrence` (null -> fired; daily/weekly/spaced -> advance, stay
+    scheduled). Returns the list of reminders that fired.
+    """
+    fired = await fire_due_reminders(session, notifier)
+    return {
+        "ok": True,
+        "data": {
+            "count": len(fired),
+            "reminders": [
+                {
+                    "id": str(r.id),
+                    "note_id": str(r.note_id) if r.note_id else None,
+                    "channel": r.channel,
+                    "recurrence": r.recurrence,
+                    "fire_at": r.fire_at.isoformat(),
+                }
+                for r in fired
+            ],
+        },
+        "error": None,
+    }
+
+
+@router.get("/resurface", dependencies=[Depends(require_token)])
+async def get_resurface(session: AsyncSession = Depends(get_session)):
+    """Notes due to resurface per the spaced schedule (Story 8.2, FR31).
+
+    A note is due when floor(days since note.created_at) is in
+    settings.resurface_schedule_days (default [1,3,7,30]) and its
+    idea_state is not shipped/archived. Pure read.
+    """
+    due = await resurface_due_notes(session)
+    return {
+        "ok": True,
+        "data": {
+            "count": len(due),
+            "notes": [
+                {
+                    "id": str(n["id"]),
+                    "title": n["title"],
+                    "type": n["type"],
+                    "days_since": n["days_since"],
+                    "bucket": n["bucket"],
+                }
+                for n in due
+            ],
+        },
+        "error": None,
+    }
+
+
+@router.get("/digest/daily", dependencies=[Depends(require_token)])
+async def get_daily_digest(
+    session: AsyncSession = Depends(get_session),
+    notifier: Notifier = Depends(_get_notifier),
+):
+    """Daily digest (Story 8.3, FR32). n8n's `daily-digest` flow calls this at 07:00."""
+    payload = await curator.daily_digest(session)
+
+    resurfaced = payload["resurfaced_idea"]
+    await notifier.send(
+        channel="digest-daily",
+        title="Spore daily digest",
+        body=f"Review queue: {payload['review_queue_count']}; "
+        f"reminders today: {len(payload['todays_reminders'])}",
+        meta={"resurfaced_idea": str(resurfaced["id"]) if resurfaced else None},
+    )
+
+    data = {
+        "review_queue_count": payload["review_queue_count"],
+        "todays_reminders": [
+            {
+                "id": str(r["id"]),
+                "note_id": str(r["note_id"]) if r["note_id"] else None,
+                "fire_at": r["fire_at"].isoformat(),
+                "channel": r["channel"],
+                "recurrence": r["recurrence"],
+            }
+            for r in payload["todays_reminders"]
+        ],
+        "resurfaced_idea": (
+            {
+                "id": str(resurfaced["id"]),
+                "title": resurfaced["title"],
+                "type": resurfaced["type"],
+                "days_since": resurfaced["days_since"],
+                "bucket": resurfaced["bucket"],
+            }
+            if resurfaced
+            else None
+        ),
+    }
+    if "narrative" in payload:
+        data["narrative"] = payload["narrative"]
+
+    return {"ok": True, "data": data, "error": None}
+
+
+@router.get("/digest/weekly", dependencies=[Depends(require_token)])
+async def get_weekly_digest(
+    session: AsyncSession = Depends(get_session),
+    notifier: Notifier = Depends(_get_notifier),
+):
+    """Weekly digest (Story 8.3, FR33). n8n's `weekly-review` flow calls this Sundays."""
+    payload = await curator.weekly_digest(session)
+
+    await notifier.send(
+        channel="digest-weekly",
+        title="Spore weekly review",
+        body=f"Orphans: {len(payload['orphan_notes'])}; "
+        f"promotion-ready: {len(payload['promotion_ready'])}; "
+        f"stale: {len(payload['stale'])}",
+        meta=None,
+    )
+
+    data = {
+        "orphan_notes": [
+            {"id": str(n["id"]), "title": n["title"], "type": n["type"], "idea_state": n["idea_state"]}
+            for n in payload["orphan_notes"]
+        ],
+        "dangling_links": [
+            {"src_id": str(link["src_id"]), "dst_id": str(link["dst_id"]), "kind": link["kind"]}
+            for link in payload["dangling_links"]
+        ],
+        "promotion_ready": [
+            {**p, "note_id": str(p["note_id"])} for p in payload["promotion_ready"]
+        ],
+        "stale": [{**s, "note_id": str(s["note_id"])} for s in payload["stale"]],
+    }
+    if "narrative" in payload:
+        data["narrative"] = payload["narrative"]
+
+    return {"ok": True, "data": data, "error": None}

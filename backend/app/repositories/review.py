@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ReviewItem
@@ -61,3 +61,9 @@ class ReviewRepository:
             delete(ReviewItem).where(ReviewItem.id == review_item_id)
         )
         return result.rowcount > 0
+
+    async def count_by_status(self, status: str = "open") -> int:
+        """Return the count of review_item rows with the given status (Story 8.3)."""
+        stmt = select(func.count()).select_from(ReviewItem).where(ReviewItem.status == status)
+        result = await self.session.execute(stmt)
+        return int(result.scalar_one())
