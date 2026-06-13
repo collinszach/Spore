@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Correction
@@ -27,3 +28,12 @@ class CorrectionRepository:
         self.session.add(correction)
         await self.session.flush()
         return correction
+
+    async def count(self) -> int:
+        result = await self.session.execute(select(func.count()).select_from(Correction))
+        return int(result.scalar_one())
+
+    async def list_recent(self, limit: int = 10) -> list[Correction]:
+        stmt = select(Correction).order_by(Correction.created_at.desc()).limit(limit)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

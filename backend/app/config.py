@@ -80,6 +80,14 @@ class Settings(BaseSettings):
     curator_narrative_enabled: bool = False
     resurface_schedule_days: list[int] = [1, 3, 7, 30]
 
+    # Epic 9 — Feedback loop (Story 9.2 / FR37). When enabled, the Sorter
+    # prompt appends a short few-shot block built from the K most recent
+    # `correction` rows (original_json -> corrected_json), to nudge future
+    # triage toward user-corrected routing. Default False — keeps existing
+    # Sorter/triage tests deterministic and $0 (no extra prompt content).
+    sorter_fewshot_enabled: bool = False
+    sorter_fewshot_k: int = 5
+
     @field_validator("resurface_schedule_days", mode="before")
     @classmethod
     def _parse_resurface_schedule_days(cls, value):

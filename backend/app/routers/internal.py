@@ -19,7 +19,8 @@ from app.auth import require_token
 from app.config import settings
 from app.db import get_session
 from app.notify import Notifier, get_notifier
-from app.services import pipeline_service
+from app.repositories.correction import CorrectionRepository
+from app.services import ops_service, pipeline_service
 from app.services.resurface_service import fire_due_reminders, resurface_due_notes
 from app.vault import VaultWriter, get_vault_writer
 
@@ -244,3 +245,44 @@ async def get_weekly_digest(
         data["narrative"] = payload["narrative"]
 
     return {"ok": True, "data": data, "error": None}
+
+
+@router.get("/cost", dependencies=[Depends(require_token)])
+async def get_cost(session: AsyncSession = Depends(get_session)):
+    """Cost dashboard (Story 9.1, FR35) — aggregates over `skill_run`."""
+    data = await ops_service.cost_summary(session)
+    return {"ok": True, "data": data, "error": None}
+
+
+@router.get("/metrics", dependencies=[Depends(require_token)])
+async def get_metrics(session: AsyncSession = Depends(get_session)):
+    """Ops/observability metrics (Story 9.3, ARCHITECTURE §9)."""
+    data = await ops_service.ops_metrics(session)
+    return {"ok": True, "data": data, "error": None}
+
+
+@router.get("/corrections/summary", dependencies=[Depends(require_token)])
+async def get_corrections_summary(
+    k: int = Query(default=10, ge=1, le=100),
+    session: AsyncSession = Depends(get_session),
+):
+    """Corrections feedback summary (Story 9.2, FR37) — count + recent pairs."""
+    correction_repo = CorrectionRepository(session)
+    count = await correction_repo.count()
+    recent = await correction_repo.list_recent(limit=k)
+
+    return {
+        "ok": True,
+        "data": {
+            "count": count,
+            "recent": [
+                {
+                    "original_json": row.original_json,
+                    "corrected_json": row.corrected_json,
+                    "created_at": row.created_at.isoformat(),
+                }
+                for row in recent
+            ],
+        },
+        "error": None,
+    }

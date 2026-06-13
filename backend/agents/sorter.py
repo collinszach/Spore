@@ -44,7 +44,9 @@ class SorterError(Exception):
     """Raised when the Claude client returns invalid/unparseable JSON."""
 
 
-def _build_prompt(capture: RawCapture, neighbors: list[Note]) -> tuple[str, str]:
+def _build_prompt(
+    capture: RawCapture, neighbors: list[Note], *, fewshot_block: str | None = None
+) -> tuple[str, str]:
     system = (
         "You are the Sorter agent for Spore, a personal knowledge capture system. "
         "Classify the given capture and return ONLY a JSON object with exactly these "
@@ -69,26 +71,45 @@ def _build_prompt(capture: RawCapture, neighbors: list[Note]) -> tuple[str, str]
         f"Candidate related notes (from kNN search):\n{neighbors_block}\n\n"
         "Return the JSON object now."
     )
+
+    if fewshot_block:
+        user = f"{user}\n\n{fewshot_block}"
+
     return system, user
 
 
-async def classify(capture: RawCapture, neighbors: list[Note], *, claude: ClaudeClient) -> TriageResult:
+async def classify(
+    capture: RawCapture,
+    neighbors: list[Note],
+    *,
+    claude: ClaudeClient,
+    fewshot_block: str | None = None,
+) -> TriageResult:
     """Classify `capture` using `claude`, validated strictly into a TriageResult.
 
     Raises `SorterError` if the model response is missing, not valid JSON,
     or fails schema validation — callers must not let unvalidated data reach
     the DB.
+
+    `fewshot_block` (optional, Story 9.2/FR37) is an already-formatted
+    "Recent corrections to learn from:" block appended to the user prompt
+    when present. Callers should only pass this when
+    `settings.sorter_fewshot_enabled` is True.
     """
-    result, _response = await classify_with_response(capture, neighbors, claude=claude)
+    result, _response = await classify_with_response(capture, neighbors, claude=claude, fewshot_block=fewshot_block)
     return result
 
 
 async def classify_with_response(
-    capture: RawCapture, neighbors: list[Note], *, claude: ClaudeClient
+    capture: RawCapture,
+    neighbors: list[Note],
+    *,
+    claude: ClaudeClient,
+    fewshot_block: str | None = None,
 ) -> tuple[TriageResult, ClaudeResponse]:
     """Like `classify`, but also returns the raw `ClaudeResponse` (for token
     usage / cost-ledger purposes in the triage pipeline)."""
-    system, user = _build_prompt(capture, neighbors)
+    system, user = _build_prompt(capture, neighbors, fewshot_block=fewshot_block)
     response = await claude.complete(system, user)
 
     if response.json is None:

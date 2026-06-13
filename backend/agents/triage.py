@@ -30,7 +30,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from agents import gate
 from agents.clients import ClaudeClient, EmbeddingsClient
 from agents.embeddings import embed_capture, find_duplicate, nearest_neighbors
+from agents.feedback import format_fewshot_block, recent_correction_examples
 from agents.sorter import TriageResult, classify_with_response
+from app.config import settings
 from app.models import RawCapture
 from app.repositories.capture import CaptureRepository
 from app.repositories.note import NoteRepository
@@ -80,9 +82,17 @@ async def triage_capture(
     # 2. pgvector kNN for related-note candidates.
     neighbors = await nearest_neighbors(session, embedding, k=5)
 
-    # 3. Sorter classification, strictly validated.
+    # 3. Sorter classification, strictly validated. Story 9.2/FR37: when
+    # enabled, append a short few-shot block built from recent corrections.
+    fewshot_block: str | None = None
+    if settings.sorter_fewshot_enabled:
+        examples = await recent_correction_examples(session, k=settings.sorter_fewshot_k)
+        fewshot_block = format_fewshot_block(examples) or None
+
     triage: TriageResult
-    triage, claude_response = await classify_with_response(capture, neighbors, claude=claude)
+    triage, claude_response = await classify_with_response(
+        capture, neighbors, claude=claude, fewshot_block=fewshot_block
+    )
 
     # 4. Near-duplicate detection (FR11) — fold into the triage result if the
     # Sorter didn't already flag one.
