@@ -13,7 +13,11 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            CaptureView(viewModel: makeCaptureViewModel())
+            CaptureView(
+                viewModel: makeCaptureViewModel(),
+                voiceViewModel: makeVoiceCaptureViewModel(),
+                networkMonitor: networkMonitor
+            )
                 .tabItem { Label("Capture", systemImage: "square.and.pencil") }
                 .tag(Tab.capture)
 
@@ -57,6 +61,10 @@ struct ContentView: View {
     private func makeCaptureViewModel() -> CaptureViewModel {
         let store = SwiftDataCaptureStore(modelContext: modelContext)
         return CaptureViewModel(queue: CaptureQueue(store: store))
+    }
+
+    private func makeVoiceCaptureViewModel() -> VoiceCaptureViewModel {
+        VoiceCaptureViewModel(recorder: AVAudioRecorderRecording(), api: URLSessionAudioCaptureAPI())
     }
 }
 

@@ -16,6 +16,27 @@ enum PreviewSupport {
             // Intentionally does nothing.
         }
     }
+
+    /// An `AudioCaptureAPI` that never performs network I/O — used in previews.
+    struct NoopAudioAPI: AudioCaptureAPI {
+        func sendAudio(captureUUID: UUID, fileURL: URL, source: String) async throws {
+            // Intentionally does nothing.
+        }
+    }
+
+    /// An `AudioRecording` that does nothing — used in previews.
+    final class NoopRecorder: AudioRecording, @unchecked Sendable {
+        private(set) var isRecording = false
+
+        func start() async throws {
+            isRecording = true
+        }
+
+        func stop() async -> URL? {
+            isRecording = false
+            return nil
+        }
+    }
 }
 
 /// A `SporeAPI` returning canned Review/Pipeline data — used in previews.

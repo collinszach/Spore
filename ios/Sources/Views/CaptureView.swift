@@ -6,10 +6,14 @@ import UIKit
 /// the user can start typing immediately (NFR1: zero-friction capture).
 struct CaptureView: View {
     @State private var viewModel: CaptureViewModel
+    @State private var voiceViewModel: VoiceCaptureViewModel
+    private let networkMonitor: NetworkMonitor?
     @FocusState private var isFocused: Bool
 
-    init(viewModel: CaptureViewModel) {
+    init(viewModel: CaptureViewModel, voiceViewModel: VoiceCaptureViewModel, networkMonitor: NetworkMonitor? = nil) {
         _viewModel = State(initialValue: viewModel)
+        _voiceViewModel = State(initialValue: voiceViewModel)
+        self.networkMonitor = networkMonitor
     }
 
     var body: some View {
@@ -37,6 +41,13 @@ struct CaptureView: View {
                 .disabled(!viewModel.canSubmit)
                 .accessibilityHint("Saves your thought and clears the field")
 
+                HStack {
+                    Spacer()
+                    VoiceCaptureView(viewModel: voiceViewModel, networkMonitor: networkMonitor)
+                    Spacer()
+                }
+                .padding(.top, 8)
+
                 Spacer()
             }
             .padding()
@@ -59,11 +70,17 @@ struct CaptureView: View {
 #Preview {
     let container = PreviewSupport.container
     let store = SwiftDataCaptureStore(modelContext: container.mainContext)
-    CaptureView(viewModel: CaptureViewModel(
-        queue: CaptureQueue(
-            store: store,
-            api: PreviewSupport.NoopAPI()
+    CaptureView(
+        viewModel: CaptureViewModel(
+            queue: CaptureQueue(
+                store: store,
+                api: PreviewSupport.NoopAPI()
+            )
+        ),
+        voiceViewModel: VoiceCaptureViewModel(
+            recorder: PreviewSupport.NoopRecorder(),
+            api: PreviewSupport.NoopAudioAPI()
         )
-    ))
+    )
     .modelContainer(container)
 }

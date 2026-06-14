@@ -18,6 +18,52 @@ final class MockCaptureAPI: CaptureAPI, @unchecked Sendable {
     }
 }
 
+/// Mock `AudioRecording` for testing — returns a canned file URL without
+/// touching AVFoundation/hardware.
+final class MockAudioRecording: AudioRecording, @unchecked Sendable {
+    private(set) var isRecording = false
+    var startError: Error?
+    var fileURL: URL?
+    private(set) var startCallCount = 0
+    private(set) var stopCallCount = 0
+
+    init(fileURL: URL? = URL(fileURLWithPath: "/tmp/spore-voice-test.m4a")) {
+        self.fileURL = fileURL
+    }
+
+    func start() async throws {
+        startCallCount += 1
+        if let startError {
+            throw startError
+        }
+        isRecording = true
+    }
+
+    func stop() async -> URL? {
+        stopCallCount += 1
+        isRecording = false
+        return fileURL
+    }
+}
+
+/// Mock `AudioCaptureAPI` for testing — can be configured to succeed or
+/// throw, and records every call.
+final class MockAudioCaptureAPI: AudioCaptureAPI, @unchecked Sendable {
+    var shouldFail: Bool
+    private(set) var sentUploads: [(captureUUID: UUID, fileURL: URL, source: String)] = []
+
+    init(shouldFail: Bool = false) {
+        self.shouldFail = shouldFail
+    }
+
+    func sendAudio(captureUUID: UUID, fileURL: URL, source: String) async throws {
+        sentUploads.append((captureUUID: captureUUID, fileURL: fileURL, source: source))
+        if shouldFail {
+            throw CaptureAPIError.transport("offline")
+        }
+    }
+}
+
 /// A single recorded call to `MockSporeAPI.act`.
 struct RecordedAction: Equatable {
     let reviewID: UUID
