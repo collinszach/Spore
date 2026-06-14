@@ -43,7 +43,7 @@ services:
       MEDIA_DIR: /media                              # uploaded audio storage
       APNS_KEY_PATH: /secrets/AuthKey_T7GUUS93Q3.p8  # APNS_ENABLED + APNS_TEAM_ID come from .env
       APNS_KEY_ID: T7GUUS93Q3
-      APNS_TOPIC: com.spore.app
+      APNS_TOPIC: com.zacharyjcollins.spore
       APNS_USE_SANDBOX: "true"                       # dev/TestFlight; set false for App Store builds
     ports: ["8020:8020"]                            # Spore API (KoastCast uses 8010/8011 — avoid clash)
     volumes:
