@@ -63,10 +63,10 @@ REMAINING needs YOU: **Epic 2 iOS** (SwiftUI, requires Xcode), and secret-gated 
 - `whisper` service (faster-whisper, base model) in compose, internal-only. Resolves ADR-001 → local STT, zero cloud cost.
 - NOTE: `.env` SPORE_CAPTURE_TOKEN was cleared during an edit and restored to `dev-local-token`. User added TUNNEL_TOKEN (cloudflared now running) + ANTHROPIC_API_KEY.
 
-## Remaining (entire PRD feature set is otherwise BUILT)
-- **1.4** Cloudflare Tunnel — TUNNEL_TOKEN now set + cloudflared running. Needs: (a) user configures the public-hostname → http://api:8020 route in the Cloudflare dashboard (token tunnels are dashboard-managed); (b) backend POST /devices endpoint (APNs token registration) — buildable now.
-- **1.5** Telegram capture — needs TELEGRAM_BOT_TOKEN (not in .env yet); n8n webhook → /capture.
-- **APNs push** — needs .p8 key to wire notify.py seam so reminders/digests deliver to the phone.
+## Remaining
+- [x] **1.4 Cloudflare Tunnel LIVE** — https://spore.zacharyjcollins.com/health → 200. iOS points at it by default. POST /devices (APNs registration) built + verified.
+- **APNs push** — plumbing built (app/apns.py ES256 JWT + HTTP/2; ApnsNotifier; .p8 mounted at /secrets). To GO LIVE: set `APNS_ENABLED=true` + `APNS_TEAM_ID=<10-char>` in remote .env. Key ID T7GUUS93Q3, topic com.spore.app, sandbox=true. **WAITING ON: Apple Team ID.**
+- **1.5** Telegram capture — needs TELEGRAM_BOT_TOKEN; n8n webhook → /capture.
 
 ## Open decisions (block specific stories)
 - ADR-001 Whisper API vs local → blocks Story 2.6
