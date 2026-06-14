@@ -88,6 +88,13 @@ class Settings(BaseSettings):
     sorter_fewshot_enabled: bool = False
     sorter_fewshot_k: int = 5
 
+    # Story 2.6 — Voice capture transcription (ADR-001: local Whisper).
+    # transcription_provider: "whisper" (real, local ASR service) or "fake"
+    # (default — deterministic, tests / no-whisper local dev).
+    transcription_provider: str = "fake"
+    whisper_url: str = "http://whisper:9000"
+    media_dir: str = "/media"
+
     @field_validator("resurface_schedule_days", mode="before")
     @classmethod
     def _parse_resurface_schedule_days(cls, value):

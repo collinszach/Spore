@@ -4,6 +4,9 @@ uvicorn[standard]==0.30.6
 pydantic==2.9.2
 pydantic-settings==2.5.2
 
+# Story 2.6 — multipart form parsing (POST /capture/audio)
+python-multipart==0.0.20
+
 # Story 1.2 — data layer
 sqlalchemy[asyncio]==2.0.35
 asyncpg==0.29.0

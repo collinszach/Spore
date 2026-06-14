@@ -38,10 +38,14 @@ services:
       OLLAMA_URL: http://ollama:11434
       EMBEDDING_MODEL: mxbai-embed-large             # 1024-dim, matches schema (ADR-002)
       SKILLS_DIR: /skills                            # declarative skill registry (drop a file, no rebuild — FR21)
+      TRANSCRIPTION_PROVIDER: whisper                # local STT (ADR-001 → local)
+      WHISPER_URL: http://whisper:9000
+      MEDIA_DIR: /media                              # uploaded audio storage
     ports: ["8020:8020"]                            # Spore API (KoastCast uses 8010/8011 — avoid clash)
     volumes:
       - ./vault:/vault                               # persist agent vault writes on the host (git repo under _sandbox)
       - ./skills:/skills:ro                          # runtime skill registry (read-only)
+      - ./media:/media                               # uploaded audio (voice captures)
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -63,6 +67,17 @@ services:
     volumes:
       - spore_n8n:/home/node/.n8n
 
+  # Local speech-to-text — Whisper (faster-whisper). No cloud, no per-minute cost (ADR-001 → local).
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    environment:
+      ASR_ENGINE: faster_whisper
+      ASR_MODEL: base                                # CPU-friendly; bump to small/medium for accuracy
+    expose: ["9000"]                                 # internal-only (NFR4); reachable as whisper:9000
+    volumes:
+      - spore_whisper:/root/.cache
+    restart: unless-stopped
+
   # Local embeddings — Ollama serving mxbai-embed-large (1024-dim). No cloud, no per-token cost.
   ollama:
     image: ollama/ollama:latest
@@ -83,3 +98,4 @@ volumes:
   spore_pg:
   spore_n8n:
   spore_ollama:
+  spore_whisper:

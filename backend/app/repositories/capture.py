@@ -29,12 +29,17 @@ class CaptureRepository:
         media_url: str | None = None,
         lang: str | None = None,
         device_id: uuid.UUID | None = None,
+        transcribed: bool = False,
     ) -> tuple[RawCapture, bool]:
         """Insert a raw_capture using `capture_uuid` as the PK, idempotently.
 
         Uses INSERT ... ON CONFLICT (id) DO NOTHING so a retry with the same
         `capture_uuid` never creates a duplicate row. Returns (row, created)
         where `created` is True only on the first insert.
+
+        `transcribed` defaults to False (text captures); voice captures
+        (Story 2.6) pass `transcribed=True` once the audio has been
+        transcribed before this call.
         """
         stmt = (
             pg_insert(RawCapture)
@@ -45,6 +50,7 @@ class CaptureRepository:
                 media_url=media_url,
                 lang=lang,
                 device_id=device_id,
+                transcribed=transcribed,
             )
             .on_conflict_do_nothing(index_elements=["id"])
             .returning(RawCapture.id)

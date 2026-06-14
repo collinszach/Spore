@@ -27,6 +27,9 @@ vault/*
 vault/_sandbox/*
 !vault/_sandbox/.gitkeep
 
+# Uploaded media (voice capture audio) — host volume, not versioned
+media/
+
 # Misc
 .DS_Store
 files.zip
