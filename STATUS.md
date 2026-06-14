@@ -55,14 +55,18 @@ REMAINING needs YOU: **Epic 2 iOS** (SwiftUI, requires Xcode), and secret-gated 
 - [x] **2.1** shell (5 tabs, Capture autofocus) + **2.2** offline SwiftData capture queue (CaptureStore protocol; 10 tests)
 - [x] **Review tab** → /review with Approve/Redirect/Merge/Discard (optimistic + restore-on-fail); **Pipeline tab** → /pipeline grouped by state
 - [x] **2.3** Share Sheet · **2.4** App Intents/Siri ("Note to Spore") · **2.5** Widget + Control Center (App Group shared queue)
-- xcodebuild build (all targets) + test GREEN: **23 tests, 0 failures** (iPhone 16 Pro / iOS 18.2). iOS build+test verifiable locally (Xcode 26.4).
-- To run against the live backend: set Info.plist `SPORE_API_BASE_URL=http://100.91.198.28:8020` (phone on Tailscale) + `SPORE_CAPTURE_TOKEN=dev-local-token`, build in Xcode. (Cloudflare tunnel = Story 1.4.)
-- Remaining iOS: **2.6 Voice capture + transcription** — BLOCKED on ADR-001 (Whisper API vs local). User prefers local → recommend local Whisper service on the host (Ollama-style).
+- [x] **2.6** Voice capture — AVAudioRecorder → POST /capture/audio → LOCAL Whisper (ADR-001 resolved: local). Verified live: speech → transcript → task note.
+- **EPIC 2 COMPLETE** (2.1–2.6). xcodebuild build (all targets) + test GREEN: **30 tests, 0 failures** (iPhone 16 Pro / iOS 18.2).
+- To run against live backend: Info.plist `SPORE_API_BASE_URL=http://100.91.198.28:8020` (Tailscale) + `SPORE_CAPTURE_TOKEN=dev-local-token`, build in Xcode.
 
-## Needs YOU (secrets)
-- **1.4** Cloudflare Tunnel — TUNNEL_TOKEN (external reach + POST /devices APNs registration)
-- **1.5** Telegram capture — TELEGRAM_BOT_TOKEN (zero-build capture channel; n8n webhook → /capture)
-- **APNs push** — .p8 key to wire notify.py seam so reminders/digests deliver
+## Infra: local Whisper
+- `whisper` service (faster-whisper, base model) in compose, internal-only. Resolves ADR-001 → local STT, zero cloud cost.
+- NOTE: `.env` SPORE_CAPTURE_TOKEN was cleared during an edit and restored to `dev-local-token`. User added TUNNEL_TOKEN (cloudflared now running) + ANTHROPIC_API_KEY.
+
+## Remaining (entire PRD feature set is otherwise BUILT)
+- **1.4** Cloudflare Tunnel — TUNNEL_TOKEN now set + cloudflared running. Needs: (a) user configures the public-hostname → http://api:8020 route in the Cloudflare dashboard (token tunnels are dashboard-managed); (b) backend POST /devices endpoint (APNs token registration) — buildable now.
+- **1.5** Telegram capture — needs TELEGRAM_BOT_TOKEN (not in .env yet); n8n webhook → /capture.
+- **APNs push** — needs .p8 key to wire notify.py seam so reminders/digests deliver to the phone.
 
 ## Open decisions (block specific stories)
 - ADR-001 Whisper API vs local → blocks Story 2.6
