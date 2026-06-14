@@ -37,7 +37,7 @@ targets:
           - CFBundleURLName: com.spore.app
             CFBundleURLSchemes:
               - spore
-        SPORE_API_BASE_URL: ""
+        SPORE_API_BASE_URL: "https://spore.zacharyjcollins.com"
         SPORE_CAPTURE_TOKEN: ""
         NSMicrophoneUsageDescription: "Spore uses the microphone to record voice captures, which are transcribed and saved to your vault."
     settings:
