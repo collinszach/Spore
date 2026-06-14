@@ -63,10 +63,17 @@ REMAINING needs YOU: **Epic 2 iOS** (SwiftUI, requires Xcode), and secret-gated 
 - `whisper` service (faster-whisper, base model) in compose, internal-only. Resolves ADR-001 → local STT, zero cloud cost.
 - NOTE: `.env` SPORE_CAPTURE_TOKEN was cleared during an edit and restored to `dev-local-token`. User added TUNNEL_TOKEN (cloudflared now running) + ANTHROPIC_API_KEY.
 
-## Remaining
-- [x] **1.4 Cloudflare Tunnel LIVE** — https://spore.zacharyjcollins.com/health → 200. iOS points at it by default. POST /devices (APNs registration) built + verified.
-- **APNs push** — plumbing built (app/apns.py ES256 JWT + HTTP/2; ApnsNotifier; .p8 mounted at /secrets). To GO LIVE: set `APNS_ENABLED=true` + `APNS_TEAM_ID=<10-char>` in remote .env. Key ID T7GUUS93Q3, topic com.spore.app, sandbox=true. **WAITING ON: Apple Team ID.**
-- **1.5** Telegram capture — needs TELEGRAM_BOT_TOKEN; n8n webhook → /capture.
+## Done — tunnel + push
+- [x] **1.4 Cloudflare Tunnel LIVE** — https://spore.zacharyjcollins.com/health → 200; iOS defaults to it.
+- [x] **APNs push LIVE + verified** — ES256 JWT (.p8 at /secrets) + HTTP/2; team K28M38H7Y5, Key T7GUUS93Q3, topic com.zacharyjcollins.spore, sandbox. Handshake confirmed (sandbox 400 BadDeviceToken = provider auth accepted). `APNS_ENABLED=true`+`APNS_TEAM_ID` in remote .env.
+- [x] **iOS push registration** — bundle id com.zacharyjcollins.spore, App Group group.com.zacharyjcollins.spore, aps-environment=development; registers token → POST /devices. 34 tests green.
+
+## To build the app on a real device (user, in Xcode)
+- Register App ID `com.zacharyjcollins.spore` + App Group `group.com.zacharyjcollins.spore` + Push capability in the Apple Developer account; select team K28M38H7Y5 in Xcode signing.
+- Set `SPORE_CAPTURE_TOKEN` (build-time) to match the remote .env value.
+
+## Remaining (optional)
+- **1.5** Telegram capture — needs TELEGRAM_BOT_TOKEN; n8n webhook → /capture. Only outstanding PRD item.
 
 ## Open decisions (block specific stories)
 - ADR-001 Whisper API vs local → blocks Story 2.6
