@@ -41,11 +41,16 @@ services:
       TRANSCRIPTION_PROVIDER: whisper                # local STT (ADR-001 → local)
       WHISPER_URL: http://whisper:9000
       MEDIA_DIR: /media                              # uploaded audio storage
+      APNS_KEY_PATH: /secrets/AuthKey_T7GUUS93Q3.p8  # APNS_ENABLED + APNS_TEAM_ID come from .env
+      APNS_KEY_ID: T7GUUS93Q3
+      APNS_TOPIC: com.spore.app
+      APNS_USE_SANDBOX: "true"                       # dev/TestFlight; set false for App Store builds
     ports: ["8020:8020"]                            # Spore API (KoastCast uses 8010/8011 — avoid clash)
     volumes:
       - ./vault:/vault                               # persist agent vault writes on the host (git repo under _sandbox)
       - ./skills:/skills:ro                          # runtime skill registry (read-only)
       - ./media:/media                               # uploaded audio (voice captures)
+      - ./secrets:/secrets:ro                        # APNs .p8 key (gitignored, never committed)
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }

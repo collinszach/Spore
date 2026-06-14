@@ -42,6 +42,25 @@ class CaptureOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DeviceIn(BaseModel):
+    """POST /devices request body (Story 1.4 device-auth)."""
+
+    apns_token: str = Field(..., min_length=1)
+    platform: str = "ios"
+
+
+class DeviceOut(BaseModel):
+    """Shape of a device row returned to clients."""
+
+    id: uuid.UUID
+    apns_token: str | None = None
+    platform: str
+    created_at: datetime
+    last_seen: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class ReviewItemOut(BaseModel):
     """Shape of a review_item row returned to clients (Story 4.2)."""
 

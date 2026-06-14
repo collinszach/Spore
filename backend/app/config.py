@@ -95,6 +95,18 @@ class Settings(BaseSettings):
     whisper_url: str = "http://whisper:9000"
     media_dir: str = "/media"
 
+    # Epic 8 — APNs push delivery (Story 1.4 device-auth wiring). Disabled by
+    # default so existing tests/dev keep NoOpNotifier with zero config.
+    # apns_key_path: path to the .p8 ES256 private key (NOT committed; PM
+    # mounts /secrets into the api container). apns_use_sandbox=True targets
+    # api.sandbox.push.apple.com (dev/TestFlight builds); set False for prod.
+    apns_enabled: bool = False
+    apns_key_path: str = "/secrets/AuthKey_T7GUUS93Q3.p8"
+    apns_key_id: str = "T7GUUS93Q3"
+    apns_team_id: str = ""
+    apns_topic: str = "com.spore.app"
+    apns_use_sandbox: bool = True
+
     @field_validator("resurface_schedule_days", mode="before")
     @classmethod
     def _parse_resurface_schedule_days(cls, value):

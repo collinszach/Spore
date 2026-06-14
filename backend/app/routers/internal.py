@@ -20,6 +20,7 @@ from app.config import settings
 from app.db import get_session
 from app.notify import Notifier, get_notifier
 from app.repositories.correction import CorrectionRepository
+from app.repositories.device import DeviceRepository
 from app.services import ops_service, pipeline_service
 from app.services.resurface_service import fire_due_reminders, resurface_due_notes
 from app.vault import VaultWriter, get_vault_writer
@@ -34,9 +35,18 @@ def _get_vault_writer() -> VaultWriter:
     return get_vault_writer()
 
 
-def _get_notifier() -> Notifier:
-    """FastAPI dependency wrapper so tests can override with a SpyNotifier (Epic 8)."""
-    return get_notifier()
+def _get_notifier(session: AsyncSession = Depends(get_session)) -> Notifier:
+    """FastAPI dependency wrapper so tests can override with a SpyNotifier (Epic 8).
+
+    Binds the request's session into a `token_provider` so `ApnsNotifier`
+    (when APNs is configured) can fetch registered device tokens without a
+    global session — see app.notify module docstring.
+    """
+
+    async def _token_provider() -> list[str]:
+        return await DeviceRepository(session).list_tokens()
+
+    return get_notifier(token_provider=_token_provider)
 
 
 @router.post("/triage-batch", dependencies=[Depends(require_token)])
