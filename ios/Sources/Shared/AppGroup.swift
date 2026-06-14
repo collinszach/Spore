@@ -5,7 +5,7 @@ import SwiftData
 /// extension so they can all enqueue into ONE offline capture queue
 /// (Story 2.3/2.4/2.5).
 enum AppGroup {
-    static let identifier = "group.com.spore.app"
+    static let identifier = "group.com.zacharyjcollins.spore"
 
     /// Shared container URL for the App Group, used to locate the SwiftData
     /// store so all targets read/write the same `CaptureQueueItem` database.

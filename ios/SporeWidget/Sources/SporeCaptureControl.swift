@@ -7,7 +7,7 @@ import AppIntents
 /// Capture tab with the keyboard focused.
 @available(iOS 18.0, *)
 struct SporeCaptureControl: ControlWidget {
-    static let kind: String = "com.spore.app.capture-control"
+    static let kind: String = "com.zacharyjcollins.spore.capture-control"
 
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind) {

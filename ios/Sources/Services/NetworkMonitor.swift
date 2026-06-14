@@ -6,7 +6,7 @@ import Network
 @Observable
 final class NetworkMonitor {
     private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "com.spore.app.network-monitor")
+    private let queue = DispatchQueue(label: "com.zacharyjcollins.spore.network-monitor")
 
     private(set) var isConnected: Bool = true
 

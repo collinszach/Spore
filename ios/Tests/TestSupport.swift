@@ -64,6 +64,24 @@ final class MockAudioCaptureAPI: AudioCaptureAPI, @unchecked Sendable {
     }
 }
 
+/// Mock `DeviceAPI` for testing `PushRegistrar` — can be configured to
+/// succeed or throw, and records every registration attempt.
+final class MockDeviceAPI: DeviceAPI, @unchecked Sendable {
+    var shouldFail: Bool
+    private(set) var registeredTokens: [String] = []
+
+    init(shouldFail: Bool = false) {
+        self.shouldFail = shouldFail
+    }
+
+    func registerDevice(apnsToken: String) async throws {
+        registeredTokens.append(apnsToken)
+        if shouldFail {
+            throw CaptureAPIError.server(status: 500)
+        }
+    }
+}
+
 /// A single recorded call to `MockSporeAPI.act`.
 struct RecordedAction: Equatable {
     let reviewID: UUID

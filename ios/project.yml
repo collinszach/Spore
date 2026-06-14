@@ -1,6 +1,6 @@
 name: Spore
 options:
-  bundleIdPrefix: com.spore
+  bundleIdPrefix: com.zacharyjcollins.spore
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -22,7 +22,8 @@ targets:
       path: Sources/App/Spore.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.spore.app
+          - group.com.zacharyjcollins.spore
+        aps-environment: development
     info:
       path: Sources/App/Info.plist
       properties:
@@ -34,16 +35,17 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         CFBundleURLTypes:
-          - CFBundleURLName: com.spore.app
+          - CFBundleURLName: com.zacharyjcollins.spore
             CFBundleURLSchemes:
               - spore
         SPORE_API_BASE_URL: "https://spore.zacharyjcollins.com"
         SPORE_CAPTURE_TOKEN: ""
         NSMicrophoneUsageDescription: "Spore uses the microphone to record voice captures, which are transcribed and saved to your vault."
+        NSUserNotificationsUsageDescription: "Spore uses notifications to let you know when your captures have been processed."
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.spore.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.zacharyjcollins.spore
         SWIFT_EMIT_LOC_STRINGS: YES
         TARGETED_DEVICE_FAMILY: "1"
     dependencies:
@@ -68,7 +70,7 @@ targets:
       path: ShareExtension/ShareExtension.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.spore.app
+          - group.com.zacharyjcollins.spore
     info:
       path: ShareExtension/Info.plist
       properties:
@@ -85,7 +87,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.spore.app.ShareExtension
+        PRODUCT_BUNDLE_IDENTIFIER: com.zacharyjcollins.spore.ShareExtension
         SWIFT_EMIT_LOC_STRINGS: YES
         TARGETED_DEVICE_FAMILY: "1"
         SKIP_INSTALL: YES
@@ -104,7 +106,7 @@ targets:
       path: SporeWidget/SporeWidget.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.spore.app
+          - group.com.zacharyjcollins.spore
     info:
       path: SporeWidget/Info.plist
       properties:
@@ -114,7 +116,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.spore.app.SporeWidget
+        PRODUCT_BUNDLE_IDENTIFIER: com.zacharyjcollins.spore.SporeWidget
         SWIFT_EMIT_LOC_STRINGS: YES
         TARGETED_DEVICE_FAMILY: "1"
         SKIP_INSTALL: YES
@@ -128,7 +130,7 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
-        PRODUCT_BUNDLE_IDENTIFIER: com.spore.app.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.zacharyjcollins.spore.tests
         SWIFT_VERSION: "5.0"
     dependencies:
       - target: Spore
